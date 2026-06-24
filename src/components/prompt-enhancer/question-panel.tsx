@@ -98,6 +98,25 @@ export const featureChips = [
   "Analytics",
 ];
 
+export const integrationChips = [
+  "Payments",
+  "Email",
+  "Calendar",
+  "AI model",
+  "File storage",
+  "Maps",
+  "SMS",
+  "Analytics",
+  "CRM",
+  "Webhooks",
+  "Zapier",
+  "None for prototype",
+];
+
+const noneForPrototypeLabel = "None for prototype";
+const integrationsWhyText =
+  "Integration details help the AI builder plan API boundaries, payment flows, notifications, and realistic prototype scope.";
+
 export function getAppIdeaExampleAnswer(answer: string, template: string) {
   return answer.trim() === template.trim() ? "" : template;
 }
@@ -161,6 +180,54 @@ export function toggleFeatureChip(answer: string, feature: string) {
     : normalizedFeature;
 }
 
+export function toggleIntegrationChip(answer: string, chip: string) {
+  const normalizedAnswer = answer.trim();
+  const normalizedChip = chip.trim();
+
+  if (!normalizedChip) {
+    return normalizedAnswer;
+  }
+
+  if (isNoneForPrototype(normalizedChip)) {
+    return noneForPrototypeLabel;
+  }
+
+  if (isNoneForPrototype(normalizedAnswer)) {
+    return normalizedChip;
+  }
+
+  if (hasIntegrationChip(normalizedAnswer, normalizedChip)) {
+    return normalizedAnswer
+      .split(/[,;\n]/)
+      .map((part) => part.trim())
+      .filter((part) => part.toLowerCase() !== normalizedChip.toLowerCase())
+      .join(", ");
+  }
+
+  return normalizedAnswer ? `${normalizedAnswer}, ${normalizedChip}` : normalizedChip;
+}
+
+export function hasIntegrationChip(answer: string, chip: string) {
+  const normalizedChip = chip.trim().toLowerCase();
+
+  if (!normalizedChip) {
+    return false;
+  }
+
+  if (isNoneForPrototype(normalizedChip)) {
+    return isNoneForPrototype(answer);
+  }
+
+  if (isNoneForPrototype(answer)) {
+    return false;
+  }
+
+  return answer
+    .split(/[,;\n]/)
+    .map((part) => part.trim().toLowerCase())
+    .includes(normalizedChip);
+}
+
 type QuestionPanelProps = {
   answer: string;
   errorVisible: boolean;
@@ -188,6 +255,7 @@ export function QuestionPanel({
   const isAudienceStep = step.id === "targetUsers";
   const isProblemStep = step.id === "problem";
   const isFeaturesStep = step.id === "features";
+  const isIntegrationsStep = step.id === "integrations";
   const breadcrumbLabel = isAppIdeaStep
     ? "Discovery / Product definition"
     : isAudienceStep
@@ -196,9 +264,13 @@ export function QuestionPanel({
         ? "Discovery / Problem"
         : isFeaturesStep
           ? "Discovery / MVP scope"
-          : "Discovery / Builder brief";
+          : isIntegrationsStep
+            ? "Discovery / Integrations"
+            : "Discovery / Builder brief";
   const textareaHelper = isFeaturesStep
     ? "Plain language is enough. Focus on the first release, not every future idea."
+    : isIntegrationsStep
+      ? "Plain language is enough. List the tools or services the app should connect with."
     : "Plain language is enough. One or two short paragraphs works well.";
   const primaryLabel =
     stepIndex === stepCount - 1 ? "Review answers" : "Continue";
@@ -354,6 +426,17 @@ export function QuestionPanel({
           </>
         )}
 
+        {isIntegrationsStep && (
+          <>
+            <IntegrationChips answer={answer} onChange={onChange} />
+            <IntegrationFormatHint />
+
+            <StepGuidance>
+              {integrationsWhyText}
+            </StepGuidance>
+          </>
+        )}
+
         {errorVisible && isMissing && (
           <p
             aria-live="polite"
@@ -390,6 +473,65 @@ export function QuestionPanel({
         )}
       </div>
     </WorkspacePanel>
+  );
+}
+
+function IntegrationChips({
+  answer,
+  onChange,
+}: {
+  answer: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="mt-5 border-y border-[var(--border)] py-5">
+      <div className="min-w-0">
+        <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+          Common integrations
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+          Add only the services the prototype should realistically mention.
+        </p>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2.5">
+        {integrationChips.map((chip) => {
+          const isSelected = hasIntegrationChip(answer, chip);
+
+          return (
+            <button
+              key={chip}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onChange(toggleIntegrationChip(answer, chip))}
+              className={cx(
+                "rounded-lg border px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]",
+                isSelected
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]",
+              )}
+            >
+              {chip}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function IntegrationFormatHint() {
+  return (
+    <div className="border-b border-[var(--border)] py-5">
+      <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+        Simple integration format
+      </h2>
+      <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+        Tool or service -&gt; what it does -&gt; when it is used
+      </p>
+      <p className="mt-3 text-sm leading-6 text-[var(--text-primary)]">
+        Stripe -&gt; collects payments -&gt; when a customer books a class
+      </p>
+    </div>
   );
 }
 
@@ -514,6 +656,10 @@ function hasFeatureChip(answer: string, feature: string) {
 
 function normalizeWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function isNoneForPrototype(value: string) {
+  return value.trim().toLowerCase() === noneForPrototypeLabel.toLowerCase();
 }
 
 function hasAudienceType(answer: string, audienceType: string) {
