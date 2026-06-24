@@ -31,6 +31,10 @@ describe("buildOpenRouterMessages", () => {
     expect(messages[1].content).toContain(
       "## UX tone\nCalm, trustworthy, mobile-first, not corporate.",
     );
+    expect(messages[1].content).toContain("Data and content");
+    expect(messages[1].content).toContain(
+      "Teachers, students, classes, bookings, payment status, cancellation window.",
+    );
     expect(messages[1].content).toContain("Stripe");
     expect(messages[1].content).toContain("Out-of-scope");
     expect(messages[1].content).toContain("ask clarifying questions only when blocked");

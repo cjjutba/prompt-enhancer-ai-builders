@@ -254,4 +254,75 @@ describe("QuestionPanel Step 1 structure", () => {
       "onClick={() => onChange(toggleToneOption(answer, tone))}",
     );
   });
+
+  it("gives content and data a guided data discovery step", () => {
+    const source = questionPanelSource();
+
+    expect(source).toContain("Discovery / Content & data");
+    expect(source).toContain("isDataStep");
+    expect(source).toContain("<DataStep answer={answer} onChange={onChange} />");
+    expect(source).toContain("min-h-[180px]");
+    expect(source).toContain(
+      "Plain language is enough. List the objects and details the app should track.",
+    );
+  });
+
+  it("gives integrations a guided external services discovery step", async () => {
+    const source = questionPanelSource();
+    const questionPanelModule = (await import("./question-panel")) as {
+      integrationChips?: string[];
+      toggleIntegrationChip?: (answer: string, chip: string) => string;
+    };
+
+    expect(source).toContain("Discovery / Integrations");
+    expect(source).toContain("Common integrations");
+    expect(source).toContain("Simple integration format");
+    expect(source).toContain(
+      "Plain language is enough. List the tools or services the app should connect with.",
+    );
+    expect(source).toContain(
+      "Tool or service -&gt; what it does -&gt; when it is used",
+    );
+    expect(source).toContain(
+      "Stripe -&gt; collects payments -&gt; when a customer books a class",
+    );
+    expect(source).toContain(
+      "Integration details help the AI builder plan API boundaries, payment flows, notifications, and realistic prototype scope.",
+    );
+    expect(questionPanelModule.integrationChips).toEqual([
+      "Payments",
+      "Email",
+      "Calendar",
+      "AI model",
+      "File storage",
+      "Maps",
+      "SMS",
+      "Analytics",
+      "CRM",
+      "Webhooks",
+      "Zapier",
+      "None for prototype",
+    ]);
+    expect(questionPanelModule.toggleIntegrationChip?.("", "Payments")).toBe(
+      "Payments",
+    );
+    expect(
+      questionPanelModule.toggleIntegrationChip?.("Payments", "Email"),
+    ).toBe("Payments, Email");
+    expect(
+      questionPanelModule.toggleIntegrationChip?.("Payments, Email", "Email"),
+    ).toBe("Payments");
+    expect(
+      questionPanelModule.toggleIntegrationChip?.(
+        "Payments, Email",
+        "None for prototype",
+      ),
+    ).toBe("None for prototype");
+    expect(
+      questionPanelModule.toggleIntegrationChip?.(
+        "None for prototype",
+        "Webhooks",
+      ),
+    ).toBe("Webhooks");
+  });
 });

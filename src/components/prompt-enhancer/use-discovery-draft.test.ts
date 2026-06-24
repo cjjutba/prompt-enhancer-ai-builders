@@ -14,13 +14,14 @@ describe("discovery draft autosave contract", () => {
     const draftModule = await loadDraftModule();
     const answers = emptyDiscoveryAnswers();
     answers.appIdea = "A booking app for yoga teachers";
+    answers.data = "Teachers, classes, bookings, payment status";
 
     const parsed = draftModule?.parseDiscoveryDraft({
       version: 1,
       flowState: "questions",
-      stepIndex: 4,
+      stepIndex: 5,
       answers,
-      touched: { appIdea: true },
+      touched: { appIdea: true, data: true },
     });
 
     expect(draftModule?.DISCOVERY_DRAFT_STORAGE_KEY).toBe(
@@ -28,9 +29,12 @@ describe("discovery draft autosave contract", () => {
     );
     expect(parsed).toMatchObject({
       flowState: "questions",
-      stepIndex: 4,
-      answers: { appIdea: "A booking app for yoga teachers" },
-      touched: { appIdea: true },
+      stepIndex: 5,
+      answers: {
+        appIdea: "A booking app for yoga teachers",
+        data: "Teachers, classes, bookings, payment status",
+      },
+      touched: { appIdea: true, data: true },
     });
   });
 
