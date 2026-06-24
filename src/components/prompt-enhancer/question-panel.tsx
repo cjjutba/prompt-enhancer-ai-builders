@@ -6,6 +6,7 @@ import {
   TargetIcon,
   WorkspacePanel,
 } from "./ui";
+import { DataStep } from "./data-step";
 import { discoverySteps, type DiscoveryStep } from "../../lib/discovery";
 
 const stepCount = discoverySteps.length;
@@ -188,6 +189,7 @@ export function QuestionPanel({
   const isAudienceStep = step.id === "targetUsers";
   const isProblemStep = step.id === "problem";
   const isFeaturesStep = step.id === "features";
+  const isDataStep = step.id === "data";
   const breadcrumbLabel = isAppIdeaStep
     ? "Discovery / Product definition"
     : isAudienceStep
@@ -196,10 +198,14 @@ export function QuestionPanel({
         ? "Discovery / Problem"
         : isFeaturesStep
           ? "Discovery / MVP scope"
-          : "Discovery / Builder brief";
+          : isDataStep
+            ? "Discovery / Content & data"
+            : "Discovery / Builder brief";
   const textareaHelper = isFeaturesStep
     ? "Plain language is enough. Focus on the first release, not every future idea."
-    : "Plain language is enough. One or two short paragraphs works well.";
+    : isDataStep
+      ? "Plain language is enough. List the objects and details the app should track."
+      : "Plain language is enough. One or two short paragraphs works well.";
   const primaryLabel =
     stepIndex === stepCount - 1 ? "Review answers" : "Continue";
 
@@ -237,7 +243,10 @@ export function QuestionPanel({
             value={answer}
             onChange={(event) => onChange(event.target.value)}
             placeholder={step.placeholder}
-            className="min-h-[210px] w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]"
+            className={cx(
+              "w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]",
+              isDataStep ? "min-h-[180px]" : "min-h-[210px]",
+            )}
             aria-describedby={`${step.id}-helper ${step.id}-count`}
           />
           <div className="mt-2 flex flex-col gap-2 text-sm text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
@@ -353,6 +362,8 @@ export function QuestionPanel({
             </StepGuidance>
           </>
         )}
+
+        {isDataStep && <DataStep answer={answer} onChange={onChange} />}
 
         {errorVisible && isMissing && (
           <p
