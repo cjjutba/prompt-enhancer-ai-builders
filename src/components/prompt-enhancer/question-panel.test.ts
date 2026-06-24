@@ -1,0 +1,196 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const questionPanelSource = () => {
+  const filePath = join(import.meta.dirname, "question-panel.tsx");
+  return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+};
+
+describe("QuestionPanel Step 1 structure", () => {
+  it("gives the app idea step a dense enterprise form layout", () => {
+    const source = questionPanelSource();
+
+    expect(source).toContain("Discovery / Product definition");
+    expect(source).toContain("Why this matters");
+    expect(source).toContain("Appointment booking");
+    expect(source).toContain("Customer portal");
+    expect(source).toContain("maxLength={1000}");
+    expect(source).toContain("min-h-[210px]");
+    expect(source).toContain(
+      "text-sm font-medium text-[var(--text-muted)]",
+    );
+    expect(source).not.toContain("min-h-56");
+    expect(source).not.toContain(
+      "text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]",
+    );
+  });
+
+  it("makes app idea examples clickable templates", async () => {
+    const source = questionPanelSource();
+    const questionPanelModule = (await import("./question-panel")) as {
+      appIdeaExamples?: Array<{ label: string; template: string }>;
+      getAppIdeaExampleAnswer?: (
+        answer: string,
+        template: string,
+      ) => string;
+    };
+
+    expect(questionPanelModule.appIdeaExamples).toHaveLength(5);
+    expect(
+      questionPanelModule.appIdeaExamples?.map((example) => example.label),
+    ).toEqual([
+      "Appointment booking",
+      "Customer portal",
+      "Inventory tracker",
+      "Event management",
+      "Internal dashboard",
+    ]);
+    expect(
+      questionPanelModule.appIdeaExamples?.every(
+        (example) => example.template.length > 80,
+      ),
+    ).toBe(true);
+    const firstTemplate = questionPanelModule.appIdeaExamples?.[0]?.template;
+
+    expect(firstTemplate).toBeTruthy();
+    expect(
+      questionPanelModule.getAppIdeaExampleAnswer?.("", firstTemplate || ""),
+    ).toBe(firstTemplate);
+    expect(
+      questionPanelModule.getAppIdeaExampleAnswer?.(
+        firstTemplate || "",
+        firstTemplate || "",
+      ),
+    ).toBe("");
+    expect(source).toContain('type="button"');
+    expect(source).toContain(
+      "onClick={() => onChange(getAppIdeaExampleAnswer(answer, example.template))}",
+    );
+  });
+
+  it("gives target users a guided audience step with interactive chips", async () => {
+    const source = questionPanelSource();
+    const questionPanelModule = (await import("./question-panel")) as {
+      audienceTypeChips?: string[];
+      toggleAudienceType?: (answer: string, audienceType: string) => string;
+    };
+
+    expect(source).toContain("Discovery / Audience");
+    expect(source).toContain("Common audience types");
+    expect(source).toContain("Clear user groups help the AI builder");
+    expect(questionPanelModule.audienceTypeChips).toEqual([
+      "Customers",
+      "Admins",
+      "Staff",
+      "Managers",
+      "Students",
+      "Parents",
+      "Tutors",
+      "Business owners",
+    ]);
+    expect(questionPanelModule.toggleAudienceType?.("", "Customers")).toBe(
+      "Customers",
+    );
+    expect(
+      questionPanelModule.toggleAudienceType?.("Teachers", "Students"),
+    ).toBe("Teachers, Students");
+    expect(
+      questionPanelModule.toggleAudienceType?.("Teachers, Students", "Students"),
+    ).toBe("Teachers");
+    expect(source).toContain(
+      "onClick={() => onChange(toggleAudienceType(answer, audienceType))}",
+    );
+  });
+
+  it("gives core problem a guided problem step with prompt chips", async () => {
+    const source = questionPanelSource();
+    const questionPanelModule = (await import("./question-panel")) as {
+      problemPromptChips?: Array<{ label: string; text: string }>;
+      toggleProblemPrompt?: (answer: string, promptText: string) => string;
+    };
+
+    expect(source).toContain("Discovery / Problem");
+    expect(source).toContain("Problem prompts");
+    expect(source).toContain("A clear problem statement helps the AI builder");
+    expect(
+      questionPanelModule.problemPromptChips?.map((prompt) => prompt.label),
+    ).toEqual([
+      "Too much manual work",
+      "Missed updates",
+      "Hard to track requests",
+      "Duplicate data entry",
+      "Slow approvals",
+      "No clear owner",
+      "Payment confusion",
+      "Poor customer visibility",
+    ]);
+
+    const firstPrompt = questionPanelModule.problemPromptChips?.[0]?.text;
+
+    expect(firstPrompt).toBeTruthy();
+    expect(questionPanelModule.toggleProblemPrompt?.("", firstPrompt || "")).toBe(
+      firstPrompt,
+    );
+    expect(
+      questionPanelModule.toggleProblemPrompt?.(
+        "Requests are handled in email.",
+        firstPrompt || "",
+      ),
+    ).toBe(`Requests are handled in email. ${firstPrompt}`);
+    expect(
+      questionPanelModule.toggleProblemPrompt?.(
+        `Requests are handled in email. ${firstPrompt}`,
+        firstPrompt || "",
+      ),
+    ).toBe("Requests are handled in email.");
+    expect(source).toContain(
+      "onClick={() => onChange(toggleProblemPrompt(answer, prompt.text))}",
+    );
+  });
+
+  it("gives MVP features a focused feature selection step", async () => {
+    const source = questionPanelSource();
+    const questionPanelModule = (await import("./question-panel")) as {
+      featureChips?: string[];
+      toggleFeatureChip?: (answer: string, feature: string) => string;
+    };
+
+    expect(source).toContain("Discovery / MVP scope");
+    expect(source).toContain("Common MVP features");
+    expect(source).toContain("Start with 4 to 6 must-have features.");
+    expect(source).toContain(
+      "A focused first release helps the AI builder create a usable MVP",
+    );
+    expect(source).toContain(
+      "Plain language is enough. Focus on the first release, not every future idea.",
+    );
+    expect(questionPanelModule.featureChips).toEqual([
+      "Sign up / login",
+      "Dashboard",
+      "Booking or scheduling",
+      "Payments",
+      "Messaging",
+      "Notifications",
+      "Admin panel",
+      "Search / filters",
+      "File upload",
+      "Analytics",
+    ]);
+    expect(questionPanelModule.toggleFeatureChip?.("", "Dashboard")).toBe(
+      "Dashboard",
+    );
+    expect(
+      questionPanelModule.toggleFeatureChip?.("Class calendar", "Payments"),
+    ).toBe("Class calendar, Payments");
+    expect(
+      questionPanelModule.toggleFeatureChip?.(
+        "Class calendar, Payments",
+        "Payments",
+      ),
+    ).toBe("Class calendar");
+    expect(source).toContain(
+      "onClick={() => onChange(toggleFeatureChip(answer, feature))}",
+    );
+  });
+});

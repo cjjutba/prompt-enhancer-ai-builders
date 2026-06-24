@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AppShell } from "@/components/prompt-enhancer/app-shell";
 import type { ShellFlowState } from "@/components/prompt-enhancer/discovery-rail";
 import { IntroScreen } from "@/components/prompt-enhancer/intro-screen";
+import { QuestionPanel } from "@/components/prompt-enhancer/question-panel";
 import { Button, WorkspacePanel } from "@/components/prompt-enhancer/ui";
+import {
+  useDiscoveryDraft,
+  type DiscoveryDraftSnapshot,
+} from "@/components/prompt-enhancer/use-discovery-draft";
 import {
   discoverySteps,
   emptyDiscoveryAnswers,
@@ -30,6 +35,25 @@ export function PromptEnhancerApp() {
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const [showExampleOutput, setShowExampleOutput] = useState(false);
+
+  const restoreDraft = useCallback((draft: DiscoveryDraftSnapshot) => {
+    setFlowState(draft.flowState);
+    setStepIndex(draft.stepIndex);
+    setAnswers(draft.answers);
+    setTouched(draft.touched);
+    setError("");
+    setGeneratedPrompt("");
+    setCopyState("idle");
+    setShowExampleOutput(false);
+  }, []);
+
+  const { clearDraft } = useDiscoveryDraft({
+    answers,
+    flowState,
+    onRestore: restoreDraft,
+    stepIndex,
+    touched,
+  });
 
   const currentStep = discoverySteps[stepIndex];
   const currentValue = answers[currentStep.id];
@@ -104,6 +128,7 @@ export function PromptEnhancerApp() {
   };
 
   const restart = () => {
+    clearDraft();
     setAnswers(emptyDiscoveryAnswers());
     setStepIndex(0);
     setTouched({});
@@ -217,78 +242,6 @@ export function PromptEnhancerApp() {
         />
       )}
     </AppShell>
-  );
-}
-
-function QuestionPanel({
-  answer,
-  errorVisible,
-  isMissing,
-  onBack,
-  onChange,
-  onNext,
-  showBack,
-  step,
-  stepIndex,
-}: {
-  answer: string;
-  errorVisible: boolean;
-  isMissing: boolean;
-  onBack: () => void;
-  onChange: (value: string) => void;
-  onNext: () => void;
-  showBack: boolean;
-  step: (typeof discoverySteps)[number];
-  stepIndex: number;
-}) {
-  return (
-    <WorkspacePanel className="min-h-[560px] p-5 sm:p-7 lg:min-h-[calc(100vh-40px)] lg:p-10">
-      <div className="flex min-h-full flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-            Step {stepIndex + 1} of {stepCount}
-          </p>
-          <span className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-1 text-sm font-medium text-[var(--text-secondary)]">
-            {step.label}
-          </span>
-        </div>
-
-        <label
-          htmlFor={step.id}
-          className="mt-7 block max-w-4xl text-3xl font-semibold leading-tight text-[var(--text-primary)] sm:text-4xl"
-        >
-          {step.question}
-        </label>
-        <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--text-secondary)]">
-          {step.helper}
-        </p>
-
-        <textarea
-          id={step.id}
-          value={answer}
-          onBlur={() => undefined}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={step.placeholder}
-          className="mt-7 min-h-56 w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]"
-        />
-
-        {errorVisible && isMissing && (
-          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            Add a short answer before moving on. Write none for now if this
-            does not apply.
-          </p>
-        )}
-
-        <div className="mt-auto flex flex-col-reverse gap-3 pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <Button disabled={!showBack} onClick={onBack} variant="secondary">
-            Back
-          </Button>
-          <Button onClick={onNext} variant="primary">
-            {stepIndex === stepCount - 1 ? "Review answers" : "Next question"}
-          </Button>
-        </div>
-      </div>
-    </WorkspacePanel>
   );
 }
 
