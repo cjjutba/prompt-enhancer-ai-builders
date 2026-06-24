@@ -50,4 +50,29 @@ describe("discovery draft autosave contract", () => {
       }),
     ).toBeNull();
   });
+
+  it("restores Step 8 design preferences answers from the session draft", async () => {
+    const draftModule = await loadDraftModule();
+    const answers = emptyDiscoveryAnswers();
+    answers.uxTone =
+      "Calm, trustworthy, mobile-first, simple for busy teachers, not corporate.";
+
+    const parsed = draftModule?.parseDiscoveryDraft({
+      version: 1,
+      flowState: "questions",
+      stepIndex: 7,
+      answers,
+      touched: { uxTone: true },
+    });
+
+    expect(parsed).toMatchObject({
+      flowState: "questions",
+      stepIndex: 7,
+      answers: {
+        uxTone:
+          "Calm, trustworthy, mobile-first, simple for busy teachers, not corporate.",
+      },
+      touched: { uxTone: true },
+    });
+  });
 });
