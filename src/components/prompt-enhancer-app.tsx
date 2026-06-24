@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AppShell } from "@/components/prompt-enhancer/app-shell";
+import type { ShellFlowState } from "@/components/prompt-enhancer/discovery-rail";
+import { IntroScreen } from "@/components/prompt-enhancer/intro-screen";
+import { Button, WorkspacePanel } from "@/components/prompt-enhancer/ui";
 import {
   discoverySteps,
   emptyDiscoveryAnswers,
@@ -9,13 +13,10 @@ import {
   type DiscoveryField,
 } from "@/lib/discovery";
 
-type FlowState = "intro" | "questions" | "review" | "result";
+type FlowState = ShellFlowState;
+type CopyState = "idle" | "copied" | "failed";
 
 const stepCount = discoverySteps.length;
-const panelClass =
-  "min-h-[640px] rounded-lg border border-[#17211d]/12 bg-white shadow-[0_24px_80px_rgba(23,33,29,0.12)]";
-const secondaryButtonClass =
-  "h-11 rounded-md border border-[#17211d]/14 px-5 text-sm font-semibold text-[#31423a] transition hover:bg-[#eef3ef] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#8be0bd]/35 disabled:cursor-not-allowed disabled:opacity-40";
 
 export function PromptEnhancerApp() {
   const [flowState, setFlowState] = useState<FlowState>("intro");
@@ -27,9 +28,8 @@ export function PromptEnhancerApp() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
-    "idle",
-  );
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const [showExampleOutput, setShowExampleOutput] = useState(false);
 
   const currentStep = discoverySteps[stepIndex];
   const currentValue = answers[currentStep.id];
@@ -40,9 +40,11 @@ export function PromptEnhancerApp() {
   );
   const completedCount = stepCount - missingFields.length;
   const progressPercent =
-    flowState === "review" || flowState === "result"
-      ? 100
-      : Math.round(((stepIndex + 1) / stepCount) * 100);
+    flowState === "intro"
+      ? 0
+      : flowState === "review" || flowState === "result"
+        ? 100
+        : Math.round((completedCount / stepCount) * 100);
 
   const updateAnswer = (field: DiscoveryField, value: string) => {
     setAnswers((current) => ({
@@ -63,6 +65,7 @@ export function PromptEnhancerApp() {
     setFlowState("questions");
     setStepIndex(0);
     setError("");
+    setShowExampleOutput(false);
   };
 
   const goNext = () => {
@@ -97,6 +100,7 @@ export function PromptEnhancerApp() {
     setStepIndex(Math.max(0, index));
     setFlowState("questions");
     setError("");
+    setShowExampleOutput(false);
   };
 
   const restart = () => {
@@ -106,6 +110,7 @@ export function PromptEnhancerApp() {
     setError("");
     setGeneratedPrompt("");
     setCopyState("idle");
+    setShowExampleOutput(false);
     setFlowState("intro");
   };
 
@@ -158,184 +163,60 @@ export function PromptEnhancerApp() {
   };
 
   return (
-    <main className="min-h-screen bg-[#e8efe9] p-3 text-[#17211d] sm:p-5 lg:p-7">
-      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] w-full max-w-[1500px] overflow-hidden rounded-lg border border-[#17211d]/12 bg-white shadow-[0_30px_120px_rgba(23,33,29,0.16)] sm:min-h-[calc(100vh-2.5rem)] lg:grid-cols-[380px_minmax(0,1fr)]">
-        <aside className="border-b border-[#17211d]/10 bg-[#17211d] px-6 py-8 text-white lg:border-b-0 lg:border-r lg:px-7 xl:px-8">
-          <div className="flex h-full flex-col justify-between gap-12">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8be0bd]">
-                Prompt Enhancer
-              </p>
-              <h1 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-normal">
-                Turn a loose app idea into a builder-ready prompt.
-              </h1>
-              <p className="mt-5 max-w-sm text-base leading-7 text-white/72">
-                A guided worksheet for people building with Lovable, Base44,
-                Emergent, or similar AI app builders.
-              </p>
-            </div>
+    <AppShell
+      answers={answers}
+      completedCount={completedCount}
+      currentStepIndex={stepIndex}
+      flowState={flowState}
+      onStepSelect={editField}
+      progressPercent={progressPercent}
+    >
+      {flowState === "intro" && (
+        <IntroScreen
+          onShowExample={() => setShowExampleOutput((visible) => !visible)}
+          onStart={startFlow}
+          showExample={showExampleOutput}
+        />
+      )}
 
-            <div className="rounded-lg border border-white/12 bg-white/6 p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-white/70">Discovery progress</span>
-                <span className="font-semibold text-[#f6bf45]">
-                  {completedCount}/{stepCount}
-                </span>
-              </div>
-              <div className="mt-3 h-2 rounded-full bg-white/12">
-                <div
-                  className="h-2 rounded-full bg-[#f45d48] transition-all"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-              <div className="mt-5 grid grid-cols-3 gap-2">
-                {discoverySteps.map((step, index) => {
-                  const isDone = answers[step.id].trim().length > 0;
-                  const isCurrent =
-                    flowState === "questions" && index === stepIndex;
+      {flowState === "questions" && (
+        <QuestionPanel
+          answer={currentValue}
+          errorVisible={Boolean(touched[currentStep.id])}
+          isMissing={currentStepMissing}
+          onBack={goBack}
+          onChange={(value) => updateAnswer(currentStep.id, value)}
+          onNext={goNext}
+          showBack={stepIndex > 0}
+          step={currentStep}
+          stepIndex={stepIndex}
+        />
+      )}
 
-                  return (
-                    <button
-                      key={step.id}
-                      type="button"
-                      onClick={() => editField(step.id)}
-                      className={`h-10 rounded-md border text-xs font-semibold transition ${
-                        isCurrent
-                          ? "border-[#f6bf45] bg-[#f6bf45] text-[#17211d]"
-                          : isDone
-                            ? "border-[#8be0bd]/70 bg-[#8be0bd]/12 text-[#d8fff0]"
-                            : "border-white/12 bg-white/5 text-white/55"
-                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f6bf45] focus-visible:ring-offset-2 focus-visible:ring-offset-[#17211d]`}
-                      aria-label={`Edit ${step.label}`}
-                    >
-                      {index + 1}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </aside>
+      {flowState === "review" && (
+        <ReviewPanel
+          answers={answers}
+          error={error}
+          isGenerating={isGenerating}
+          missingFields={missingFields}
+          onBack={goBack}
+          onEdit={editField}
+          onGenerate={generatePrompt}
+        />
+      )}
 
-        <section className="min-h-full bg-[#f6f8f4] px-4 py-5 sm:px-7 sm:py-7 lg:px-10 xl:px-14">
-          <div className="mx-auto flex min-h-full w-full max-w-5xl items-stretch">
-            {flowState === "intro" && <IntroPanel onStart={startFlow} />}
-
-            {flowState === "questions" && (
-              <QuestionPanel
-                answer={currentValue}
-                errorVisible={Boolean(touched[currentStep.id])}
-                isMissing={currentStepMissing}
-                onBack={goBack}
-                onChange={(value) => updateAnswer(currentStep.id, value)}
-                onNext={goNext}
-                showBack={stepIndex > 0}
-                step={currentStep}
-                stepIndex={stepIndex}
-              />
-            )}
-
-            {flowState === "review" && (
-              <ReviewPanel
-                answers={answers}
-                error={error}
-                isGenerating={isGenerating}
-                missingFields={missingFields}
-                onBack={goBack}
-                onEdit={editField}
-                onGenerate={generatePrompt}
-              />
-            )}
-
-            {flowState === "result" && (
-              <ResultPanel
-                copyState={copyState}
-                error={error}
-                isGenerating={isGenerating}
-                onCopy={copyPrompt}
-                onRestart={restart}
-                onRetry={generatePrompt}
-                prompt={generatedPrompt}
-              />
-            )}
-          </div>
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function IntroPanel({ onStart }: { onStart: () => void }) {
-  return (
-    <div className={`${panelClass} grid w-full overflow-hidden lg:grid-cols-[minmax(0,1fr)_300px]`}>
-      <div className="flex flex-col justify-between gap-10 p-6 sm:p-9 lg:p-11">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#287a67]">
-            8 minute worksheet
-          </p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-normal text-[#17211d] sm:text-5xl lg:text-6xl">
-            Answer the product questions your AI builder needs.
-          </h2>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-[#51615a]">
-            Move through practical prompts, review the plan, then generate a
-            complete prompt you can paste into your app builder.
-          </p>
-        </div>
-
-        <div>
-          <button
-            type="button"
-            onClick={onStart}
-            className="inline-flex h-12 items-center justify-center rounded-md bg-[#f45d48] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#d94d3d] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f45d48]/25"
-          >
-            Start discovery
-          </button>
-
-          <div className="mt-8 grid gap-4 border-t border-[#17211d]/10 pt-6 sm:grid-cols-3">
-            {[
-              ["1", "Plain-language inputs"],
-              ["2", "No account or storage"],
-              ["3", "Copy-ready output"],
-            ].map(([number, item]) => (
-              <div key={item} className="min-w-0">
-                <p className="font-mono text-sm font-semibold text-[#f45d48]">
-                  {number}
-                </p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[#31423a]">
-                  {item}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-[#17211d]/10 bg-[#edf3ee] p-6 lg:border-l lg:border-t-0 lg:p-7">
-        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#287a67]">
-          Discovery route
-        </p>
-        <div className="mt-5 grid gap-3">
-          {discoverySteps.slice(0, 6).map((step, index) => (
-            <div
-              key={step.id}
-              className="flex items-start gap-3 border-b border-[#17211d]/10 pb-3 last:border-b-0"
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold text-[#287a67]">
-                {index + 1}
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-[#17211d]">
-                  {step.label}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[#65746e]">
-                  {step.question}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      {flowState === "result" && (
+        <ResultPanel
+          copyState={copyState}
+          error={error}
+          isGenerating={isGenerating}
+          onCopy={copyPrompt}
+          onRestart={restart}
+          onRetry={generatePrompt}
+          prompt={generatedPrompt}
+        />
+      )}
+    </AppShell>
   );
 }
 
@@ -361,60 +242,53 @@ function QuestionPanel({
   stepIndex: number;
 }) {
   return (
-    <div className={`${panelClass} flex w-full flex-col justify-between p-5 sm:p-8 lg:p-10`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#287a67]">
-          Step {stepIndex + 1} of {stepCount}
-        </p>
-        <span className="rounded-full border border-[#17211d]/10 px-3 py-1 text-sm font-medium text-[#51615a]">
-          {step.label}
-        </span>
-      </div>
+    <WorkspacePanel className="min-h-[560px] p-5 sm:p-7 lg:min-h-[calc(100vh-40px)] lg:p-10">
+      <div className="flex min-h-full flex-col">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+            Step {stepIndex + 1} of {stepCount}
+          </p>
+          <span className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-1 text-sm font-medium text-[var(--text-secondary)]">
+            {step.label}
+          </span>
+        </div>
 
-      <label
-        htmlFor={step.id}
-        className="mt-6 block text-3xl font-semibold tracking-normal text-[#17211d] sm:text-4xl"
-      >
-        {step.question}
-      </label>
-      <p className="mt-3 max-w-2xl text-base leading-7 text-[#51615a]">
-        {step.helper}
-      </p>
-
-      <textarea
-        id={step.id}
-        value={answer}
-        onBlur={() => undefined}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={step.placeholder}
-        className="mt-7 min-h-48 w-full resize-y rounded-md border border-[#17211d]/16 bg-[#fbfcfa] p-4 text-base leading-7 text-[#17211d] outline-none transition placeholder:text-[#8d9994] focus:border-[#287a67] focus:ring-4 focus:ring-[#8be0bd]/30"
-      />
-
-      {errorVisible && isMissing && (
-        <p className="mt-3 text-sm font-medium text-[#b43c30]">
-          Add a short answer before moving on. Write none for now if this does
-          not apply.
-        </p>
-      )}
-
-      <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={!showBack}
-          className={secondaryButtonClass}
+        <label
+          htmlFor={step.id}
+          className="mt-7 block max-w-4xl text-3xl font-semibold leading-tight text-[var(--text-primary)] sm:text-4xl"
         >
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="h-11 rounded-md bg-[#17211d] px-5 text-sm font-semibold text-white transition hover:bg-[#24352e] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#17211d]/20"
-        >
-          {stepIndex === stepCount - 1 ? "Review answers" : "Next question"}
-        </button>
+          {step.question}
+        </label>
+        <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--text-secondary)]">
+          {step.helper}
+        </p>
+
+        <textarea
+          id={step.id}
+          value={answer}
+          onBlur={() => undefined}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={step.placeholder}
+          className="mt-7 min-h-56 w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]"
+        />
+
+        {errorVisible && isMissing && (
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            Add a short answer before moving on. Write none for now if this
+            does not apply.
+          </p>
+        )}
+
+        <div className="mt-auto flex flex-col-reverse gap-3 pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <Button disabled={!showBack} onClick={onBack} variant="secondary">
+            Back
+          </Button>
+          <Button onClick={onNext} variant="primary">
+            {stepIndex === stepCount - 1 ? "Review answers" : "Next question"}
+          </Button>
+        </div>
       </div>
-    </div>
+    </WorkspacePanel>
   );
 }
 
@@ -438,36 +312,33 @@ function ReviewPanel({
   const isReady = missingFields.length === 0;
 
   return (
-    <div className={`${panelClass} w-full p-5 sm:p-8 lg:p-10`}>
-      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#287a67]">
+    <WorkspacePanel className="p-5 sm:p-7 lg:min-h-[calc(100vh-40px)] lg:p-10">
+      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
         Review
       </p>
-      <h2 className="mt-4 text-3xl font-semibold tracking-normal text-[#17211d] sm:text-4xl">
+      <h1 className="mt-4 max-w-4xl text-3xl font-semibold leading-tight text-[var(--text-primary)] sm:text-4xl">
         Check the brief before generation.
-      </h2>
-      <p className="mt-3 max-w-2xl text-base leading-7 text-[#51615a]">
+      </h1>
+      <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--text-secondary)]">
         These answers become the context for the final builder prompt.
       </p>
 
-      <div className="mt-7 grid gap-3">
+      <div className="mt-7 divide-y divide-[var(--border)] border-y border-[var(--border)]">
         {discoverySteps.map((step) => (
-          <div
-            key={step.id}
-            className="rounded-md border border-[#17211d]/10 bg-[#fbfcfa] p-4"
-          >
+          <div key={step.id} className="py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#287a67]">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                 {step.label}
-              </h3>
+              </h2>
               <button
                 type="button"
                 onClick={() => onEdit(step.id)}
-                className="text-sm font-semibold text-[#b43c30] underline-offset-4 hover:underline"
+                className="rounded-lg px-2 py-1 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]"
               >
                 Edit
               </button>
             </div>
-            <p className="mt-2 whitespace-pre-line text-base leading-7 text-[#31423a]">
+            <p className="mt-2 whitespace-pre-line break-words text-base leading-7 text-[var(--text-secondary)]">
               {answers[step.id] || "Missing"}
             </p>
           </div>
@@ -477,7 +348,7 @@ function ReviewPanel({
       {error && (
         <p
           aria-live="polite"
-          className="mt-5 rounded-md border border-[#f45d48]/30 bg-[#fff1ef] px-4 py-3 text-sm font-medium text-[#9c342a]"
+          className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
         >
           {error}
         </p>
@@ -486,30 +357,25 @@ function ReviewPanel({
       {isGenerating && (
         <p
           aria-live="polite"
-          className="mt-5 rounded-md border border-[#f6bf45]/40 bg-[#fff8e7] px-4 py-3 text-sm font-medium text-[#6e4a05]"
+          className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
         >
           Assembling your builder prompt from the discovery notes.
         </p>
       )}
 
       <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className={secondaryButtonClass}
-        >
+        <Button onClick={onBack} variant="secondary">
           Back to questions
-        </button>
-        <button
-          type="button"
-          onClick={onGenerate}
+        </Button>
+        <Button
           disabled={!isReady || isGenerating}
-          className="h-11 rounded-md bg-[#f45d48] px-5 text-sm font-semibold text-white transition hover:bg-[#d94d3d] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f45d48]/25 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={onGenerate}
+          variant="primary"
         >
           {isGenerating ? "Generating..." : "Generate prompt"}
-        </button>
+        </Button>
       </div>
-    </div>
+    </WorkspacePanel>
   );
 }
 
@@ -522,7 +388,7 @@ function ResultPanel({
   onRetry,
   prompt,
 }: {
-  copyState: "idle" | "copied" | "failed";
+  copyState: CopyState;
   error: string;
   isGenerating: boolean;
   onCopy: () => void;
@@ -531,38 +397,34 @@ function ResultPanel({
   prompt: string;
 }) {
   return (
-    <div className={`${panelClass} w-full p-5 sm:p-8 lg:p-10`}>
+    <WorkspacePanel className="p-5 sm:p-7 lg:min-h-[calc(100vh-40px)] lg:p-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#287a67]">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
             Builder-ready prompt
           </p>
-          <h2 className="mt-4 text-3xl font-semibold tracking-normal text-[#17211d] sm:text-4xl">
+          <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight text-[var(--text-primary)] sm:text-4xl">
             Paste this into your AI app builder.
-          </h2>
+          </h1>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            className="sm:min-w-24"
             onClick={onCopy}
-            className="h-11 rounded-md bg-[#17211d] px-4 text-sm font-semibold text-white transition hover:bg-[#24352e] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#17211d]/20"
+            variant={copyState === "copied" ? "secondary" : "primary"}
           >
-            Copy
-          </button>
-          <button
-            type="button"
-            onClick={onRestart}
-            className={secondaryButtonClass}
-          >
+            {copyState === "copied" ? "Copied" : "Copy"}
+          </Button>
+          <Button onClick={onRestart} variant="secondary">
             Restart
-          </button>
+          </Button>
         </div>
       </div>
 
       {copyState === "copied" && (
         <p
           aria-live="polite"
-          className="mt-4 rounded-md border border-[#8be0bd]/40 bg-[#e8fff4] px-4 py-3 text-sm font-medium text-[#1f6d58]"
+          className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
         >
           Copied to clipboard.
         </p>
@@ -571,32 +433,34 @@ function ResultPanel({
       {copyState === "failed" && (
         <p
           aria-live="polite"
-          className="mt-4 rounded-md border border-[#f45d48]/30 bg-[#fff1ef] px-4 py-3 text-sm font-medium text-[#9c342a]"
+          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
         >
           Copy failed. Select the prompt text and copy it manually.
         </p>
       )}
 
       {error && (
-        <div className="mt-4 rounded-md border border-[#f45d48]/30 bg-[#fff1ef] px-4 py-3">
-          <p className="text-sm font-medium text-[#9c342a]">{error}</p>
-          <button
-            type="button"
-            onClick={onRetry}
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm font-medium text-red-700">{error}</p>
+          <Button
+            className="mt-3"
             disabled={isGenerating}
-            className="mt-3 h-10 rounded-md bg-[#f45d48] px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f45d48]/25 disabled:opacity-50"
+            onClick={onRetry}
+            variant="primary"
           >
             {isGenerating ? "Retrying..." : "Retry generation"}
-          </button>
+          </Button>
         </div>
       )}
 
       <textarea
         readOnly
+        id="generatedPrompt"
+        name="generatedPrompt"
         value={prompt}
-        className="mt-6 min-h-[520px] w-full rounded-md border border-[#17211d]/12 bg-[#fbfcfa] p-4 font-mono text-sm leading-6 text-[#17211d] outline-none focus:ring-4 focus:ring-[#8be0bd]/30"
+        className="mt-6 min-h-[520px] w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 font-mono text-sm leading-6 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]"
         aria-label="Generated prompt"
       />
-    </div>
+    </WorkspacePanel>
   );
 }
