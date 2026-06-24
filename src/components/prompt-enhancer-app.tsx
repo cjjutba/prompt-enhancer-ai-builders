@@ -151,6 +151,16 @@ export function PromptEnhancerApp() {
     setShowExampleOutput(false);
   };
 
+  const returnToIntro = () => {
+    setFlowState("intro");
+    setError("");
+    setGenerationFailed(false);
+    setQuestionReturnTarget(null);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
+    setShowExampleOutput(false);
+  };
+
   const goNext = () => {
     markTouched(currentStep.id);
 
@@ -184,6 +194,11 @@ export function PromptEnhancerApp() {
     setGenerationFailed(false);
     setEditingReviewField(null);
     setEditingReviewValue("");
+
+    if (flowState === "questions" && stepIndex === 0) {
+      returnToIntro();
+      return;
+    }
 
     if (flowState === "review") {
       setFlowState("questions");
@@ -399,7 +414,7 @@ export function PromptEnhancerApp() {
           onChange={(value) => updateAnswer(currentStep.id, value)}
           onNext={goNext}
           returnTarget={questionReturnTarget}
-          showBack={Boolean(questionReturnTarget) || stepIndex > 0}
+          showBack={Boolean(questionReturnTarget) || flowState === "questions"}
           step={currentStep}
           stepIndex={stepIndex}
         />

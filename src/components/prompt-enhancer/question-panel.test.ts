@@ -14,6 +14,11 @@ const questionStepLayoutSource = () => {
   return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
 };
 
+const promptEnhancerAppSource = () => {
+  const filePath = join(import.meta.dirname, "../prompt-enhancer-app.tsx");
+  return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+};
+
 const audienceStepSource = () => {
   const filePath = join(import.meta.dirname, "audience-step.tsx");
   return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
@@ -90,6 +95,19 @@ const questionPanelElementFor = (field: DiscoveryField) => {
 };
 
 describe("QuestionPanel Step 1 structure", () => {
+  it("lets the first discovery step return to the intro screen", () => {
+    const source = promptEnhancerAppSource();
+
+    expect(source).toContain("const returnToIntro = () => {");
+    expect(source).toContain('setFlowState("intro")');
+    expect(source).toContain(
+      'if (flowState === "questions" && stepIndex === 0)',
+    );
+    expect(source).toContain(
+      'showBack={Boolean(questionReturnTarget) || flowState === "questions"}',
+    );
+  });
+
   it("gives the app idea step a dense enterprise form layout", () => {
     const source = questionPanelSource();
     const layoutSource = questionStepLayoutSource();
