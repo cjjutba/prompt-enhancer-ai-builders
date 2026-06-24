@@ -99,7 +99,7 @@ export const discoverySteps: DiscoveryStep[] = [
     label: "Constraints",
     question: "What rules or limits matter?",
     helper:
-      "Include business rules, permissions, launch limits, or write 'none for now'.",
+      "Include business rules, permissions, launch limits, or write none for now.",
     placeholder:
       "No auth in the prototype, but explain where accounts would fit later.",
   },

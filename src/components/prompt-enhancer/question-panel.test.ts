@@ -7,6 +7,27 @@ const questionPanelSource = () => {
   return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
 };
 
+const constraintsStepSource = () => {
+  const filePath = join(import.meta.dirname, "constraints-step.tsx");
+  return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+};
+
+const discoverySource = () => {
+  const filePath = join(import.meta.dirname, "../../lib/discovery.ts");
+  return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+};
+
+const loadConstraintsStepModule = async () => {
+  try {
+    return (await import("./constraints-step")) as {
+      constraintChips?: string[];
+      toggleConstraintChip?: (answer: string, chip: string) => string;
+    };
+  } catch {
+    return null;
+  }
+};
+
 describe("QuestionPanel Step 1 structure", () => {
   it("gives the app idea step a dense enterprise form layout", () => {
     const source = questionPanelSource();
@@ -253,6 +274,82 @@ describe("QuestionPanel Step 1 structure", () => {
     expect(source).toContain(
       "onClick={() => onChange(toggleToneOption(answer, tone))}",
     );
+  });
+
+  it("gives launch goals a guided constraints step with toggle chips", async () => {
+    const source = questionPanelSource();
+    const stepSource = constraintsStepSource();
+    const stepsSource = discoverySource();
+    const constraintsStepModule = await loadConstraintsStepModule();
+
+    expect(source).toContain("Discovery / Launch goals");
+    expect(stepsSource).toContain(
+      "Include business rules, permissions, launch limits, or write none for now.",
+    );
+    expect(stepSource).toContain("Common constraints");
+    expect(stepSource).toContain("Useful constraint format");
+    expect(stepSource).toContain(
+      "No account creation for prototype -> keeps the demo simple -> explain where login would fit later",
+    );
+    expect(stepSource).toContain(
+      "Constraints help the AI builder avoid overbuilding, respect business rules, and produce a realistic first version.",
+    );
+    expect(source).toContain(
+      "<ConstraintChips answer={answer} onChange={onChange} />",
+    );
+    expect(source).toContain(
+      "Plain language is enough. Include any must-follow rules, limits, or success goals.",
+    );
+    expect(constraintsStepModule?.constraintChips).toEqual([
+      "No auth for prototype",
+      "Mobile-first",
+      "Admin approval required",
+      "Role-based access",
+      "Payment required",
+      "Email confirmation",
+      "Limited MVP scope",
+      "Public landing page",
+      "Private dashboard",
+      "Accessibility",
+      "No database for demo",
+      "None for now",
+    ]);
+    expect(
+      constraintsStepModule?.toggleConstraintChip?.(
+        "",
+        "No auth for prototype",
+      ),
+    ).toBe("No auth for prototype");
+    expect(
+      constraintsStepModule?.toggleConstraintChip?.(
+        "Mobile-first",
+        "Admin approval required",
+      ),
+    ).toBe("Mobile-first, Admin approval required");
+    expect(
+      constraintsStepModule?.toggleConstraintChip?.(
+        "Mobile-first, Admin approval required",
+        "Mobile-first",
+      ),
+    ).toBe("Admin approval required");
+    expect(
+      constraintsStepModule?.toggleConstraintChip?.(
+        "Mobile-first, Admin approval required",
+        "None for now",
+      ),
+    ).toBe("None for now");
+    expect(
+      constraintsStepModule?.toggleConstraintChip?.(
+        "None for now",
+        "Mobile-first",
+      ),
+    ).toBe("Mobile-first");
+    expect(
+      constraintsStepModule?.toggleConstraintChip?.(
+        "None for now",
+        "None for now",
+      ),
+    ).toBe("");
   });
 
   it("gives content and data a guided data discovery step", () => {
