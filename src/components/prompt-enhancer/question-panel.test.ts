@@ -252,4 +252,16 @@ describe("QuestionPanel Step 1 structure", () => {
       ),
     ).toBe("Webhooks");
   });
+
+  it("gives content and data a guided data discovery step", () => {
+    const source = questionPanelSource();
+
+    expect(source).toContain("Discovery / Content & data");
+    expect(source).toContain("isDataStep");
+    expect(source).toContain("<DataStep answer={answer} onChange={onChange} />");
+    expect(source).toContain("min-h-[180px]");
+    expect(source).toContain(
+      "Plain language is enough. List the objects and details the app should track.",
+    );
+  });
 });
