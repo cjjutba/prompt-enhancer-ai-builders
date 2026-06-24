@@ -82,7 +82,7 @@ export const discoverySteps: DiscoveryStep[] = [
     label: "Integrations",
     question: "What should it connect to?",
     helper:
-      "Mention payments, email, AI, calendars, or write 'none for the prototype'.",
+      "Mention payments, email, AI, calendars, or write none for the prototype.",
     placeholder: "Stripe for payments and email reminders.",
   },
   {

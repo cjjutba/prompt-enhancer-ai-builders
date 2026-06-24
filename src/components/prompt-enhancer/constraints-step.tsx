@@ -1,4 +1,4 @@
-import { TargetIcon, cx } from "./ui";
+import { ListIcon, RouteIcon, TargetIcon, cx } from "./ui";
 
 const noneForNowLabel = "None for now";
 
@@ -16,6 +16,21 @@ export const constraintChips = [
   "No database for demo",
   noneForNowLabel,
 ];
+
+type ConstraintsStepProps = {
+  answer: string;
+  onChange: (value: string) => void;
+};
+
+export function ConstraintsStep({ answer, onChange }: ConstraintsStepProps) {
+  return (
+    <div className="mt-5 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+      <ConstraintChips answer={answer} onChange={onChange} />
+      <ConstraintFormatHint />
+      <ConstraintWhyItMatters />
+    </div>
+  );
+}
 
 export function toggleConstraintChip(answer: string, chip: string) {
   const normalizedChip = chip.trim();
@@ -44,20 +59,20 @@ export function toggleConstraintChip(answer: string, chip: string) {
 export function ConstraintChips({
   answer,
   onChange,
-}: {
-  answer: string;
-  onChange: (value: string) => void;
-}) {
+}: ConstraintsStepProps) {
   return (
-    <div className="mt-5 border-y border-[var(--border)] py-5">
-      <div className="min-w-0">
-        <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
-          Common constraints
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-          Add launch rules, prototype boundaries, and access needs the builder
-          should respect.
-        </p>
+    <section className="py-5">
+      <div className="flex items-start gap-3">
+        <ListIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+            Common constraints
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+            Add launch rules, prototype boundaries, and access needs the
+            builder should respect.
+          </p>
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2.5">
         {constraintChips.map((chip) => {
@@ -81,31 +96,34 @@ export function ConstraintChips({
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
 
 export function ConstraintFormatHint() {
   return (
-    <div className="border-b border-[var(--border)] py-5">
-      <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
-        Useful constraint format
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-        {"Rule or limit -> why it matters -> how strict it is"}
-      </p>
-      <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-        {
-          "No account creation for prototype -> keeps the demo simple -> explain where login would fit later"
-        }
-      </p>
-    </div>
+    <section className="flex gap-3 py-5">
+      <RouteIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
+      <div className="min-w-0">
+        <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+          Useful constraint format
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+          {"Rule or limit → why it matters → how strict it is"}
+        </p>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+          {
+            "No account creation for prototype → keeps the demo simple → explain where login would fit later"
+          }
+        </p>
+      </div>
+    </section>
   );
 }
 
 export function ConstraintWhyItMatters() {
   return (
-    <div className="flex gap-4 border-b border-[var(--border)] py-5">
+    <section className="flex gap-3 py-5">
       <TargetIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
       <div className="min-w-0">
         <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
@@ -117,7 +135,7 @@ export function ConstraintWhyItMatters() {
           }
         </p>
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -1,4 +1,4 @@
-import { cx, ListIcon, RouteIcon, TargetIcon } from "./ui";
+import { cx } from "./ui";
 
 export const dataTypeChips = [
   "Users",
@@ -29,10 +29,12 @@ type DataStepProps = {
 
 export function DataStep({ answer, onChange }: DataStepProps) {
   return (
-    <div className="mt-5 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+    <div className="mt-5 border-y border-[var(--border)]">
       <DataTypeChips answer={answer} onChange={onChange} />
-      <DataFormatHint />
-      <DataWhyItMatters />
+      <div className="grid gap-5 border-t border-[var(--border)] py-5 sm:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] sm:gap-7">
+        <DataFormatHint />
+        <DataWhyItMatters />
+      </div>
     </div>
   );
 }
@@ -40,8 +42,7 @@ export function DataStep({ answer, onChange }: DataStepProps) {
 export function DataTypeChips({ answer, onChange }: DataStepProps) {
   return (
     <section className="py-5">
-      <div className="flex items-start gap-3">
-        <ListIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
             Common data types
@@ -50,6 +51,9 @@ export function DataTypeChips({ answer, onChange }: DataStepProps) {
             Add anything the app needs to store, show, or manage.
           </p>
         </div>
+        <p className="shrink-0 text-sm font-medium leading-6 text-[var(--text-muted)]">
+          Select to add
+        </p>
       </div>
       <div className="mt-4 flex flex-wrap gap-2.5">
         {dataTypeChips.map((dataType) => {
@@ -64,7 +68,7 @@ export function DataTypeChips({ answer, onChange }: DataStepProps) {
               className={cx(
                 "rounded-lg border px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]",
                 isSelected
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                  ? "border-[var(--accent)] bg-[var(--surface)] text-[var(--accent)]"
                   : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]",
               )}
             >
@@ -79,19 +83,16 @@ export function DataTypeChips({ answer, onChange }: DataStepProps) {
 
 export function DataFormatHint() {
   return (
-    <section className="flex gap-3 py-5">
-      <RouteIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
-      <div className="min-w-0">
-        <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
-          Simple data format
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-          {dataFormatGuide}
-        </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-          {dataFormatExample}
-        </p>
-      </div>
+    <section className="min-w-0">
+      <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+        Simple data format
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+        {dataFormatGuide}
+      </p>
+      <p className="mt-3 text-sm leading-6 text-[var(--text-primary)]">
+        {dataFormatExample}
+      </p>
     </section>
   );
 }
@@ -115,18 +116,15 @@ export function toggleDataTypeChip(answer: string, dataType: string) {
     : normalizedType;
 }
 
-function DataWhyItMatters() {
+export function DataWhyItMatters() {
   return (
-    <section className="flex gap-3 py-5">
-      <TargetIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
-      <div className="min-w-0">
-        <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
-          Why this matters
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-          {dataWhyItMatters}
-        </p>
-      </div>
+    <section className="min-w-0 border-t border-[var(--border)] pt-5 sm:border-l sm:border-t-0 sm:pl-7 sm:pt-0">
+      <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+        Why this matters
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+        {dataWhyItMatters}
+      </p>
     </section>
   );
 }

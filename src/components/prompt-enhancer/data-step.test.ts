@@ -59,4 +59,16 @@ describe("DataStep helpers", () => {
       dataStepModule.toggleDataTypeChip?.("Users, Bookings", "Bookings"),
     ).toBe("Users");
   });
+
+  it("uses a quiet split-row layout for the data format and rationale", () => {
+    const source = dataStepSource();
+
+    expect(source).toContain("export function DataWhyItMatters");
+    expect(source).toContain("grid gap-5 border-t");
+    expect(source).toContain("sm:grid-cols");
+    expect(source).toContain(
+      "border-t border-[var(--border)] pt-5 sm:border-l",
+    );
+    expect(source).not.toContain("<RouteIcon");
+  });
 });

@@ -14,6 +14,26 @@ type OpenRouterResponse = {
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const FALLBACK_MODEL = "google/gemini-3-flash-preview";
+const PROVIDER = "openrouter";
+
+const createRequestId = () =>
+  globalThis.crypto?.randomUUID?.() ||
+  `enhance-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const formatLogDetails = (details: Record<string, unknown>) =>
+  JSON.stringify(details);
+
+const logInfo = (message: string, details: Record<string, unknown>) => {
+  console.info(`${message} ${formatLogDetails(details)}`);
+};
+
+const logWarn = (message: string, details: Record<string, unknown>) => {
+  console.warn(`${message} ${formatLogDetails(details)}`);
+};
+
+const logError = (message: string, details: Record<string, unknown>) => {
+  console.error(`${message} ${formatLogDetails(details)}`);
+};
 
 export async function POST(request: Request) {
   let payload: unknown;
@@ -41,13 +61,30 @@ export async function POST(request: Request) {
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || FALLBACK_MODEL;
+  const requestId = createRequestId();
 
   if (!apiKey) {
+    logWarn("[Prompt Enhancer] AI generation not configured", {
+      model,
+      provider: PROVIDER,
+      requestId,
+    });
+
     return Response.json(
       { error: "Prompt generation is not configured yet." },
       { status: 503 },
     );
   }
+
+  const startedAt = Date.now();
+
+  logInfo("[Prompt Enhancer] AI generation started", {
+    answerCount: Object.keys(answers).length,
+    model,
+    provider: PROVIDER,
+    requestId,
+  });
 
   try {
     const response = await fetch(OPENROUTER_URL, {
@@ -58,7 +95,7 @@ export async function POST(request: Request) {
         "X-OpenRouter-Title": "Prompt Enhancer for AI App Builders",
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || FALLBACK_MODEL,
+        model,
         messages: buildOpenRouterMessages(answers),
         temperature: 0.35,
         max_tokens: 2400,
@@ -66,6 +103,15 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
+      logError("[Prompt Enhancer] AI generation failed", {
+        durationMs: Date.now() - startedAt,
+        model,
+        openRouterStatus: response.status,
+        provider: PROVIDER,
+        reason: "openrouter_non_success_status",
+        requestId,
+      });
+
       return Response.json(
         { error: "The prompt generator could not complete the request." },
         { status: 502 },
@@ -76,14 +122,43 @@ export async function POST(request: Request) {
     const prompt = data.choices?.[0]?.message?.content;
 
     if (typeof prompt !== "string" || prompt.trim().length === 0) {
+      logError("[Prompt Enhancer] AI generation failed", {
+        durationMs: Date.now() - startedAt,
+        model,
+        openRouterStatus: response.status,
+        provider: PROVIDER,
+        reason: "empty_model_response",
+        requestId,
+      });
+
       return Response.json(
         { error: "The prompt generator returned an empty response." },
         { status: 502 },
       );
     }
 
-    return Response.json({ prompt: prompt.trim() });
-  } catch {
+    const trimmedPrompt = prompt.trim();
+
+    logInfo("[Prompt Enhancer] AI generation succeeded", {
+      durationMs: Date.now() - startedAt,
+      model,
+      openRouterStatus: response.status,
+      outputCharacters: trimmedPrompt.length,
+      provider: PROVIDER,
+      requestId,
+    });
+
+    return Response.json({ prompt: trimmedPrompt });
+  } catch (error) {
+    logError("[Prompt Enhancer] AI generation failed", {
+      durationMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : "Unknown error",
+      model,
+      provider: PROVIDER,
+      reason: "request_exception",
+      requestId,
+    });
+
     return Response.json(
       { error: "The prompt generator is unavailable. Try again." },
       { status: 502 },

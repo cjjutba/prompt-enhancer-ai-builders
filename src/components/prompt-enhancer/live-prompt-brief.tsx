@@ -1,6 +1,17 @@
 import type { ReactNode } from "react";
 import type { DiscoveryAnswers } from "@/lib/discovery";
-import { CubeIcon, ListIcon, TargetIcon, TipBlock, UsersIcon, cx } from "./ui";
+import {
+  CubeIcon,
+  DocumentIcon,
+  ListIcon,
+  RouteIcon,
+  ShieldIcon,
+  SparkIcon,
+  TargetIcon,
+  TipBlock,
+  UsersIcon,
+  cx,
+} from "./ui";
 
 type LivePromptBriefProps = {
   answers: DiscoveryAnswers;
@@ -9,12 +20,26 @@ type LivePromptBriefProps = {
 const briefRows: Array<{
   key: keyof DiscoveryAnswers;
   label: string;
-  icon: "product" | "audience" | "goal" | "features";
+  icon:
+    | "product"
+    | "audience"
+    | "problem"
+    | "features"
+    | "screens"
+    | "data"
+    | "integrations"
+    | "tone"
+    | "constraints";
 }> = [
   { key: "appIdea", label: "Product", icon: "product" },
   { key: "targetUsers", label: "Audience", icon: "audience" },
-  { key: "problem", label: "Goal", icon: "goal" },
+  { key: "problem", label: "Problem", icon: "problem" },
   { key: "features", label: "MVP features", icon: "features" },
+  { key: "screens", label: "Screens", icon: "screens" },
+  { key: "data", label: "Data", icon: "data" },
+  { key: "integrations", label: "Integrations", icon: "integrations" },
+  { key: "uxTone", label: "UX tone", icon: "tone" },
+  { key: "constraints", label: "Constraints", icon: "constraints" },
 ];
 
 export function LivePromptBrief({ answers }: LivePromptBriefProps) {
@@ -71,7 +96,16 @@ export function BriefRow({
   label,
   value,
 }: {
-  icon: "product" | "audience" | "goal" | "features";
+  icon:
+    | "product"
+    | "audience"
+    | "problem"
+    | "features"
+    | "screens"
+    | "data"
+    | "integrations"
+    | "tone"
+    | "constraints";
   label: string;
   value: string;
 }) {
@@ -79,19 +113,22 @@ export function BriefRow({
   const hasValue = value.trim().length > 0;
 
   return (
-    <div className="flex min-w-0 items-start gap-4 py-5">
-      <Icon
-        className={cx(
-          "mt-0.5 h-5 w-5 shrink-0",
-          hasValue ? "text-[var(--accent)]" : "text-[var(--text-muted)]",
-        )}
-      />
+    <div className="flex min-w-0 items-start gap-3 py-4">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-[var(--text-primary)]">
           {label}
         </p>
         {hasValue ? (
-          <p className="mt-1 max-h-20 overflow-hidden break-words text-sm leading-6 text-[var(--text-secondary)]">
+          <p
+            className="mt-1 overflow-hidden break-words text-sm leading-6 text-[var(--text-secondary)]"
+            style={{
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 3,
+              display: "-webkit-box",
+            }}
+            title={value}
+          >
             {value}
           </p>
         ) : (
@@ -124,7 +161,7 @@ function AudienceIcon({ className }: { className?: string }) {
   return <UsersIcon className={className} />;
 }
 
-function GoalIcon({ className }: { className?: string }) {
+function ProblemIcon({ className }: { className?: string }) {
   return <TargetIcon className={className} />;
 }
 
@@ -132,12 +169,45 @@ function FeaturesIcon({ className }: { className?: string }) {
   return <ListIcon className={className} />;
 }
 
+function ScreensIcon({ className }: { className?: string }) {
+  return <DocumentIcon className={className} />;
+}
+
+function DataIcon({ className }: { className?: string }) {
+  return <ListIcon className={className} />;
+}
+
+function IntegrationsIcon({ className }: { className?: string }) {
+  return <RouteIcon className={className} />;
+}
+
+function ToneIcon({ className }: { className?: string }) {
+  return <SparkIcon className={className} />;
+}
+
+function ConstraintsIcon({ className }: { className?: string }) {
+  return <ShieldIcon className={className} />;
+}
+
 const briefIconMap: Record<
-  "product" | "audience" | "goal" | "features",
+  | "product"
+  | "audience"
+  | "problem"
+  | "features"
+  | "screens"
+  | "data"
+  | "integrations"
+  | "tone"
+  | "constraints",
   ({ className }: { className?: string }) => ReactNode
 > = {
   product: ProductIcon,
   audience: AudienceIcon,
-  goal: GoalIcon,
+  problem: ProblemIcon,
   features: FeaturesIcon,
+  screens: ScreensIcon,
+  data: DataIcon,
+  integrations: IntegrationsIcon,
+  tone: ToneIcon,
+  constraints: ConstraintsIcon,
 };

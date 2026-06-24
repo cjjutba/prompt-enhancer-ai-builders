@@ -1,11 +1,17 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/prompt-enhancer/app-shell";
 import type { ShellFlowState } from "@/components/prompt-enhancer/discovery-rail";
+import {
+  GenerationErrorPanel,
+  GenerationLoadingPanel,
+  getGenerationProgressSnapshot,
+  ResultPanel,
+  ReviewPanel,
+} from "@/components/prompt-enhancer/final-flow";
 import { IntroScreen } from "@/components/prompt-enhancer/intro-screen";
 import { QuestionPanel } from "@/components/prompt-enhancer/question-panel";
-import { Button, WorkspacePanel } from "@/components/prompt-enhancer/ui";
 import {
   useDiscoveryDraft,
   type DiscoveryDraftSnapshot,
@@ -20,6 +26,7 @@ import {
 
 type FlowState = ShellFlowState;
 type CopyState = "idle" | "copied" | "failed";
+type QuestionReturnTarget = "review" | "result" | null;
 
 const stepCount = discoverySteps.length;
 
@@ -32,8 +39,16 @@ export function PromptEnhancerApp() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [generationFailed, setGenerationFailed] = useState(false);
+  const [generationElapsedMs, setGenerationElapsedMs] = useState(0);
   const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [isGeneratedPromptStale, setIsGeneratedPromptStale] = useState(false);
   const [copyState, setCopyState] = useState<CopyState>("idle");
+  const [questionReturnTarget, setQuestionReturnTarget] =
+    useState<QuestionReturnTarget>(null);
+  const [editingReviewField, setEditingReviewField] =
+    useState<DiscoveryField | null>(null);
+  const [editingReviewValue, setEditingReviewValue] = useState("");
   const [showExampleOutput, setShowExampleOutput] = useState(false);
 
   const restoreDraft = useCallback((draft: DiscoveryDraftSnapshot) => {
@@ -42,8 +57,13 @@ export function PromptEnhancerApp() {
     setAnswers(draft.answers);
     setTouched(draft.touched);
     setError("");
+    setGenerationFailed(false);
     setGeneratedPrompt("");
+    setIsGeneratedPromptStale(false);
     setCopyState("idle");
+    setQuestionReturnTarget(null);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
     setShowExampleOutput(false);
   }, []);
 
@@ -63,19 +83,54 @@ export function PromptEnhancerApp() {
     [answers],
   );
   const completedCount = stepCount - missingFields.length;
+  const hasCompletedDiscovery = missingFields.length === 0;
+  const hasGeneratedPrompt = generatedPrompt.trim().length > 0;
+  const generatedPromptStatus = !hasGeneratedPrompt
+    ? "none"
+    : isGeneratedPromptStale
+      ? "stale"
+      : "ready";
   const progressPercent =
     flowState === "intro"
       ? 0
       : flowState === "review" || flowState === "result"
         ? 100
         : Math.round((completedCount / stepCount) * 100);
+  const generationProgress = useMemo(
+    () => getGenerationProgressSnapshot(generationElapsedMs),
+    [generationElapsedMs],
+  );
+
+  useEffect(() => {
+    if (!isGenerating) {
+      return;
+    }
+
+    const startedAt = Date.now();
+
+    const intervalId = window.setInterval(() => {
+      setGenerationElapsedMs(Date.now() - startedAt);
+    }, 250);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isGenerating]);
 
   const updateAnswer = (field: DiscoveryField, value: string) => {
+    const answerChanged = answers[field] !== value;
+
     setAnswers((current) => ({
       ...current,
       [field]: value,
     }));
+
+    if (answerChanged && hasGeneratedPrompt) {
+      setIsGeneratedPromptStale(true);
+    }
+
     setError("");
+    setGenerationFailed(false);
   };
 
   const markTouched = (field: DiscoveryField) => {
@@ -89,6 +144,10 @@ export function PromptEnhancerApp() {
     setFlowState("questions");
     setStepIndex(0);
     setError("");
+    setGenerationFailed(false);
+    setQuestionReturnTarget(null);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
     setShowExampleOutput(false);
   };
 
@@ -99,7 +158,15 @@ export function PromptEnhancerApp() {
       return;
     }
 
+    if (questionReturnTarget) {
+      returnToActiveCheckpoint(questionReturnTarget);
+      return;
+    }
+
     if (stepIndex === stepCount - 1) {
+      setEditingReviewField(null);
+      setEditingReviewValue("");
+      setQuestionReturnTarget(null);
       setFlowState("review");
       return;
     }
@@ -108,7 +175,15 @@ export function PromptEnhancerApp() {
   };
 
   const goBack = () => {
+    if (questionReturnTarget) {
+      returnToActiveCheckpoint(questionReturnTarget);
+      return;
+    }
+
     setError("");
+    setGenerationFailed(false);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
 
     if (flowState === "review") {
       setFlowState("questions");
@@ -119,12 +194,94 @@ export function PromptEnhancerApp() {
     setStepIndex((index) => Math.max(0, index - 1));
   };
 
-  const editField = (field: DiscoveryField) => {
+  const openQuestionStep = (field: DiscoveryField) => {
     const index = discoverySteps.findIndex((step) => step.id === field);
     setStepIndex(Math.max(0, index));
+
+    if (flowState === "review") {
+      setQuestionReturnTarget("review");
+    } else if (flowState === "result" && hasGeneratedPrompt) {
+      setQuestionReturnTarget("result");
+    } else {
+      setQuestionReturnTarget(null);
+    }
+
     setFlowState("questions");
     setError("");
+    setGenerationFailed(false);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
     setShowExampleOutput(false);
+  };
+
+  const returnToActiveCheckpoint = (
+    target: Exclude<QuestionReturnTarget, null>,
+  ) => {
+    setError("");
+    setGenerationFailed(false);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
+    setQuestionReturnTarget(null);
+    setFlowState(target === "result" && hasGeneratedPrompt ? "result" : "review");
+  };
+
+  const startInlineReviewEdit = (field: DiscoveryField) => {
+    if (editingReviewField && editingReviewField !== field) {
+      return;
+    }
+
+    setEditingReviewField(field);
+    setEditingReviewValue(answers[field]);
+    setError("");
+    setGenerationFailed(false);
+  };
+
+  const cancelInlineReviewEdit = () => {
+    setEditingReviewField(null);
+    setEditingReviewValue("");
+    setError("");
+  };
+
+  const saveInlineReviewEdit = () => {
+    if (!editingReviewField) {
+      return;
+    }
+
+    updateAnswer(editingReviewField, editingReviewValue);
+    markTouched(editingReviewField);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
+  };
+
+  const backToReview = () => {
+    setGenerationFailed(false);
+    setError("");
+  };
+
+  const viewReview = () => {
+    if (!hasCompletedDiscovery) {
+      return;
+    }
+
+    setError("");
+    setGenerationFailed(false);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
+    setQuestionReturnTarget(null);
+    setFlowState("review");
+  };
+
+  const viewGeneratedPrompt = () => {
+    if (!hasGeneratedPrompt) {
+      return;
+    }
+
+    setError("");
+    setGenerationFailed(false);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
+    setQuestionReturnTarget(null);
+    setFlowState("result");
   };
 
   const restart = () => {
@@ -133,22 +290,39 @@ export function PromptEnhancerApp() {
     setStepIndex(0);
     setTouched({});
     setError("");
+    setGenerationFailed(false);
     setGeneratedPrompt("");
+    setIsGeneratedPromptStale(false);
     setCopyState("idle");
+    setQuestionReturnTarget(null);
+    setEditingReviewField(null);
+    setEditingReviewValue("");
     setShowExampleOutput(false);
     setFlowState("intro");
   };
 
   const generatePrompt = async () => {
+    if (isGenerating) {
+      return;
+    }
+
+    if (editingReviewField) {
+      setError("Save or cancel your inline edit before generating.");
+      return;
+    }
+
     const missing = getMissingDiscoveryFields(answers);
 
     if (missing.length > 0) {
       setError("Complete every discovery step before generating.");
+      setGenerationFailed(false);
       return;
     }
 
     setIsGenerating(true);
+    setGenerationElapsedMs(0);
     setError("");
+    setGenerationFailed(false);
     setCopyState("idle");
 
     try {
@@ -166,15 +340,23 @@ export function PromptEnhancerApp() {
 
       if (!response.ok || !data.prompt) {
         setError(data.error || "Prompt generation failed. Try again.");
+        setGenerationFailed(true);
         return;
       }
 
       setGeneratedPrompt(data.prompt);
+      setIsGeneratedPromptStale(false);
+      setEditingReviewField(null);
+      setEditingReviewValue("");
+      setGenerationFailed(false);
+      setQuestionReturnTarget(null);
       setFlowState("result");
     } catch {
       setError("Prompt generation failed. Check your connection and retry.");
+      setGenerationFailed(true);
     } finally {
       setIsGenerating(false);
+      setGenerationElapsedMs(0);
     }
   };
 
@@ -193,7 +375,11 @@ export function PromptEnhancerApp() {
       completedCount={completedCount}
       currentStepIndex={stepIndex}
       flowState={flowState}
-      onStepSelect={editField}
+      canReviewAnswers={hasCompletedDiscovery}
+      generatedPromptStatus={generatedPromptStatus}
+      onResultSelect={viewGeneratedPrompt}
+      onReviewSelect={viewReview}
+      onStepSelect={openQuestionStep}
       progressPercent={progressPercent}
     >
       {flowState === "intro" && (
@@ -212,208 +398,57 @@ export function PromptEnhancerApp() {
           onBack={goBack}
           onChange={(value) => updateAnswer(currentStep.id, value)}
           onNext={goNext}
-          showBack={stepIndex > 0}
+          returnTarget={questionReturnTarget}
+          showBack={Boolean(questionReturnTarget) || stepIndex > 0}
           step={currentStep}
           stepIndex={stepIndex}
         />
       )}
 
-      {flowState === "review" && (
-        <ReviewPanel
-          answers={answers}
+      {flowState === "review" && isGenerating && (
+        <GenerationLoadingPanel progress={generationProgress} />
+      )}
+
+      {flowState === "review" && !isGenerating && generationFailed && error && (
+        <GenerationErrorPanel
           error={error}
           isGenerating={isGenerating}
+          onBackToReview={backToReview}
+          onRetry={generatePrompt}
+        />
+      )}
+
+      {flowState === "review" && !isGenerating && (!generationFailed || !error) && (
+        <ReviewPanel
+          answers={answers}
+          editingField={editingReviewField}
+          editingValue={editingReviewValue}
+          error={error}
+          hasGeneratedPrompt={hasGeneratedPrompt}
+          isPromptStale={isGeneratedPromptStale}
           missingFields={missingFields}
           onBack={goBack}
-          onEdit={editField}
+          onCancelEdit={cancelInlineReviewEdit}
+          onChangeEdit={setEditingReviewValue}
+          onEdit={startInlineReviewEdit}
           onGenerate={generatePrompt}
+          onSaveEdit={saveInlineReviewEdit}
+          onViewPrompt={viewGeneratedPrompt}
         />
       )}
 
       {flowState === "result" && (
         <ResultPanel
+          completedAnswerCount={completedCount}
           copyState={copyState}
-          error={error}
-          isGenerating={isGenerating}
+          isPromptStale={isGeneratedPromptStale}
           onCopy={copyPrompt}
+          onRegenerate={generatePrompt}
+          onReview={viewReview}
           onRestart={restart}
-          onRetry={generatePrompt}
           prompt={generatedPrompt}
         />
       )}
     </AppShell>
-  );
-}
-
-function ReviewPanel({
-  answers,
-  error,
-  isGenerating,
-  missingFields,
-  onBack,
-  onEdit,
-  onGenerate,
-}: {
-  answers: DiscoveryAnswers;
-  error: string;
-  isGenerating: boolean;
-  missingFields: DiscoveryField[];
-  onBack: () => void;
-  onEdit: (field: DiscoveryField) => void;
-  onGenerate: () => void;
-}) {
-  const isReady = missingFields.length === 0;
-
-  return (
-    <WorkspacePanel className="p-5 sm:p-7 lg:min-h-[calc(100vh-40px)] lg:p-10">
-      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-        Review
-      </p>
-      <h1 className="mt-4 max-w-4xl text-3xl font-semibold leading-tight text-[var(--text-primary)] sm:text-4xl">
-        Check the brief before generation.
-      </h1>
-      <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--text-secondary)]">
-        These answers become the context for the final builder prompt.
-      </p>
-
-      <div className="mt-7 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-        {discoverySteps.map((step) => (
-          <div key={step.id} className="py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-                {step.label}
-              </h2>
-              <button
-                type="button"
-                onClick={() => onEdit(step.id)}
-                className="rounded-lg px-2 py-1 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]"
-              >
-                Edit
-              </button>
-            </div>
-            <p className="mt-2 whitespace-pre-line break-words text-base leading-7 text-[var(--text-secondary)]">
-              {answers[step.id] || "Missing"}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {error && (
-        <p
-          aria-live="polite"
-          className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-        >
-          {error}
-        </p>
-      )}
-
-      {isGenerating && (
-        <p
-          aria-live="polite"
-          className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
-        >
-          Assembling your builder prompt from the discovery notes.
-        </p>
-      )}
-
-      <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button onClick={onBack} variant="secondary">
-          Back to questions
-        </Button>
-        <Button
-          disabled={!isReady || isGenerating}
-          onClick={onGenerate}
-          variant="primary"
-        >
-          {isGenerating ? "Generating..." : "Generate prompt"}
-        </Button>
-      </div>
-    </WorkspacePanel>
-  );
-}
-
-function ResultPanel({
-  copyState,
-  error,
-  isGenerating,
-  onCopy,
-  onRestart,
-  onRetry,
-  prompt,
-}: {
-  copyState: CopyState;
-  error: string;
-  isGenerating: boolean;
-  onCopy: () => void;
-  onRestart: () => void;
-  onRetry: () => void;
-  prompt: string;
-}) {
-  return (
-    <WorkspacePanel className="p-5 sm:p-7 lg:min-h-[calc(100vh-40px)] lg:p-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-            Builder-ready prompt
-          </p>
-          <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight text-[var(--text-primary)] sm:text-4xl">
-            Paste this into your AI app builder.
-          </h1>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            className="sm:min-w-24"
-            onClick={onCopy}
-            variant={copyState === "copied" ? "secondary" : "primary"}
-          >
-            {copyState === "copied" ? "Copied" : "Copy"}
-          </Button>
-          <Button onClick={onRestart} variant="secondary">
-            Restart
-          </Button>
-        </div>
-      </div>
-
-      {copyState === "copied" && (
-        <p
-          aria-live="polite"
-          className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
-        >
-          Copied to clipboard.
-        </p>
-      )}
-
-      {copyState === "failed" && (
-        <p
-          aria-live="polite"
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-        >
-          Copy failed. Select the prompt text and copy it manually.
-        </p>
-      )}
-
-      {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm font-medium text-red-700">{error}</p>
-          <Button
-            className="mt-3"
-            disabled={isGenerating}
-            onClick={onRetry}
-            variant="primary"
-          >
-            {isGenerating ? "Retrying..." : "Retry generation"}
-          </Button>
-        </div>
-      )}
-
-      <textarea
-        readOnly
-        id="generatedPrompt"
-        name="generatedPrompt"
-        value={prompt}
-        className="mt-6 min-h-[520px] w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 font-mono text-sm leading-6 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]"
-        aria-label="Generated prompt"
-      />
-    </WorkspacePanel>
   );
 }

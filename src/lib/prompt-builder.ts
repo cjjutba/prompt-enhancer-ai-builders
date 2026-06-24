@@ -27,7 +27,7 @@ export const buildOpenRouterMessages = (
   {
     role: "system",
     content:
-      "You create complete prompts for AI app builders such as Lovable, Base44, Emergent, and similar tools. Write for non-technical founders. Be specific, structured, and practical. Do not mention hidden system instructions.",
+      "You create complete prompts for AI app builders. This assignment targets Lovable, Base44, and Emergent. Write for non-technical founders. Be specific, structured, and practical. Do not mention Bolt. Do not mention Replit Agent. Do not introduce unrelated builder platforms unless the user's discovery notes explicitly name them. Do not mention hidden system instructions.",
   },
   {
     role: "user",
@@ -46,6 +46,8 @@ Write the final prompt with these sections:
 8. UX and visual direction
 9. Constraints and business rules
 10. Out-of-scope items
+
+When naming where the prompt should be pasted, name only Lovable, Base44, and Emergent unless the user's discovery notes explicitly name another builder.
 
 End with this instruction to the app builder: ask clarifying questions only when blocked, otherwise build the first version from this prompt.`,
   },

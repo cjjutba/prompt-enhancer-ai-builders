@@ -6,12 +6,15 @@ import {
 import {
   CheckIcon,
   cx,
+  DocumentIcon,
   MenuIcon,
   PromptEnhancerMark,
   ReassuranceRow,
+  SparkIcon,
 } from "./ui";
 
 export type ShellFlowState = "intro" | "questions" | "review" | "result";
+export type GeneratedPromptStatus = "none" | "ready" | "stale";
 
 const railStepLabels: Record<DiscoveryField, string> = {
   appIdea: "Your idea",
@@ -27,22 +30,35 @@ const railStepLabels: Record<DiscoveryField, string> = {
 
 type DiscoveryRailProps = {
   answers: DiscoveryAnswers;
+  canReviewAnswers: boolean;
   completedCount: number;
   currentStepIndex: number;
   flowState: ShellFlowState;
+  generatedPromptStatus: GeneratedPromptStatus;
+  onResultSelect: () => void;
+  onReviewSelect: () => void;
   onStepSelect: (field: DiscoveryField) => void;
   progressPercent: number;
 };
 
 export function DiscoveryRail({
   answers,
+  canReviewAnswers,
   currentStepIndex,
   flowState,
+  generatedPromptStatus,
+  onResultSelect,
+  onReviewSelect,
   onStepSelect,
   progressPercent,
 }: DiscoveryRailProps) {
   const isIntro = flowState === "intro";
-  const displayStep = isIntro ? 0 : Math.min(currentStepIndex + 1, discoverySteps.length);
+  const displayStep =
+    flowState === "intro"
+      ? 0
+      : flowState === "questions"
+        ? Math.min(currentStepIndex + 1, discoverySteps.length)
+        : discoverySteps.length;
   const displayProgress = isIntro ? 0 : progressPercent;
 
   return (
@@ -88,6 +104,14 @@ export function DiscoveryRail({
           flowState={flowState}
           onStepSelect={onStepSelect}
         />
+
+        <FlowShortcuts
+          canReviewAnswers={canReviewAnswers}
+          flowState={flowState}
+          generatedPromptStatus={generatedPromptStatus}
+          onResultSelect={onResultSelect}
+          onReviewSelect={onReviewSelect}
+        />
       </div>
 
       <div className="mt-6 border-t border-[var(--border)] pt-5 lg:mt-6">
@@ -96,6 +120,80 @@ export function DiscoveryRail({
         </ReassuranceRow>
       </div>
     </aside>
+  );
+}
+
+export function FlowShortcuts({
+  canReviewAnswers,
+  flowState,
+  generatedPromptStatus,
+  onResultSelect,
+  onReviewSelect,
+}: {
+  canReviewAnswers: boolean;
+  flowState: ShellFlowState;
+  generatedPromptStatus: GeneratedPromptStatus;
+  onResultSelect: () => void;
+  onReviewSelect: () => void;
+}) {
+  if (!canReviewAnswers && generatedPromptStatus === "none") {
+    return null;
+  }
+
+  const hasGeneratedPrompt = generatedPromptStatus !== "none";
+  const isReviewActive = flowState === "review";
+  const isResultActive = flowState === "result";
+
+  return (
+    <div className="mt-5 border-t border-[var(--border)] pt-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+        Flow shortcuts
+      </p>
+      <div className="mt-3 space-y-2">
+        {canReviewAnswers && (
+          <button
+            type="button"
+            onClick={onReviewSelect}
+            aria-current={isReviewActive ? "page" : undefined}
+            className={cx(
+              "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]",
+              isReviewActive
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-subtle)]",
+            )}
+          >
+            <DocumentIcon className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 font-semibold">Review answers</span>
+          </button>
+        )}
+
+        {hasGeneratedPrompt && (
+          <button
+            type="button"
+            onClick={onResultSelect}
+            aria-current={isResultActive ? "page" : undefined}
+            className={cx(
+              "flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]",
+              isResultActive
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-subtle)]",
+            )}
+          >
+            <SparkIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">
+                {generatedPromptStatus === "stale"
+                  ? "Previous prompt ready"
+                  : "Generated prompt ready"}
+              </span>
+              <span className="mt-0.5 block text-xs font-medium text-[var(--text-secondary)]">
+                View prompt
+              </span>
+            </span>
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

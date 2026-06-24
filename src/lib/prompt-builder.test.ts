@@ -39,4 +39,13 @@ describe("buildOpenRouterMessages", () => {
     expect(messages[1].content).toContain("Out-of-scope");
     expect(messages[1].content).toContain("ask clarifying questions only when blocked");
   });
+
+  it("keeps generated prompts aligned to the assignment builder targets", () => {
+    const messages = buildOpenRouterMessages(answers);
+    const promptContract = messages.map((message) => message.content).join("\n");
+
+    expect(promptContract).toContain("Lovable, Base44, and Emergent");
+    expect(promptContract).toContain("Do not mention Bolt");
+    expect(promptContract).toContain("Do not mention Replit Agent");
+  });
 });
