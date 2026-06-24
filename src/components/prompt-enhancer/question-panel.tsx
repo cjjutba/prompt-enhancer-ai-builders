@@ -6,6 +6,11 @@ import {
   TargetIcon,
   WorkspacePanel,
 } from "./ui";
+import {
+  ConstraintChips,
+  ConstraintFormatHint,
+  ConstraintWhyItMatters,
+} from "./constraints-step";
 import { DataStep } from "./data-step";
 import { discoverySteps, type DiscoveryStep } from "../../lib/discovery";
 
@@ -258,6 +263,7 @@ export function QuestionPanel({
   const isFeaturesStep = step.id === "features";
   const isDataStep = step.id === "data";
   const isIntegrationsStep = step.id === "integrations";
+  const isConstraintsStep = step.id === "constraints";
   const breadcrumbLabel = isAppIdeaStep
     ? "Discovery / Product definition"
     : isAudienceStep
@@ -270,14 +276,18 @@ export function QuestionPanel({
             ? "Discovery / Content & data"
             : isIntegrationsStep
               ? "Discovery / Integrations"
-              : "Discovery / Builder brief";
+              : isConstraintsStep
+                ? "Discovery / Launch goals"
+                : "Discovery / Builder brief";
   const textareaHelper = isFeaturesStep
     ? "Plain language is enough. Focus on the first release, not every future idea."
     : isDataStep
       ? "Plain language is enough. List the objects and details the app should track."
       : isIntegrationsStep
         ? "Plain language is enough. List the tools or services the app should connect with."
-      : "Plain language is enough. One or two short paragraphs works well.";
+        : isConstraintsStep
+          ? "Plain language is enough. Include any must-follow rules, limits, or success goals."
+          : "Plain language is enough. One or two short paragraphs works well.";
   const primaryLabel =
     stepIndex === stepCount - 1 ? "Review answers" : "Continue";
 
@@ -445,6 +455,14 @@ export function QuestionPanel({
             <StepGuidance>
               {integrationsWhyText}
             </StepGuidance>
+          </>
+        )}
+
+        {isConstraintsStep && (
+          <>
+            <ConstraintChips answer={answer} onChange={onChange} />
+            <ConstraintFormatHint />
+            <ConstraintWhyItMatters />
           </>
         )}
 
