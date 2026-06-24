@@ -28,6 +28,9 @@ describe("buildOpenRouterMessages", () => {
     expect(messages[0].content).toContain("AI app builders");
     expect(messages[1]).toMatchObject({ role: "user" });
     expect(messages[1].content).toContain("booking app");
+    expect(messages[1].content).toContain(
+      "## UX tone\nCalm, trustworthy, mobile-first, not corporate.",
+    );
     expect(messages[1].content).toContain("Stripe");
     expect(messages[1].content).toContain("Out-of-scope");
     expect(messages[1].content).toContain("ask clarifying questions only when blocked");

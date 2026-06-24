@@ -98,6 +98,30 @@ export const featureChips = [
   "Analytics",
 ];
 
+export const toneOptions = [
+  "Calm",
+  "Trustworthy",
+  "Fast",
+  "Premium",
+  "Friendly",
+  "Minimal",
+  "Mobile-first",
+  "Professional",
+  "Playful",
+  "Accessible",
+  "Data-heavy",
+  "Simple",
+];
+
+const designPreferenceDetails = [
+  "Who should the design feel built for",
+  "Whether it should feel simple, premium, playful, or operational",
+  "Any styles to avoid, such as too corporate, too playful, too dark, or too busy",
+];
+
+const designPreferenceWhy =
+  "Design direction helps the AI builder choose layout, tone, density, and visual style that match the users instead of generating a generic interface.";
+
 export function getAppIdeaExampleAnswer(answer: string, template: string) {
   return answer.trim() === template.trim() ? "" : template;
 }
@@ -161,6 +185,29 @@ export function toggleFeatureChip(answer: string, feature: string) {
     : normalizedFeature;
 }
 
+export function toggleToneOption(answer: string, tone: string) {
+  const normalizedAnswer = answer.trim();
+  const normalizedTone = tone.trim();
+
+  if (!normalizedTone) {
+    return normalizedAnswer;
+  }
+
+  if (hasToneOption(normalizedAnswer, normalizedTone)) {
+    return normalizedAnswer
+      .split(/[,;\n]/)
+      .map((part) => part.trim())
+      .filter((part) => part.toLowerCase() !== normalizedTone.toLowerCase())
+      .join(", ");
+  }
+
+  const appendableAnswer = normalizedAnswer.replace(/[.,;:!?]+$/, "");
+
+  return appendableAnswer
+    ? `${appendableAnswer}, ${normalizedTone}`
+    : normalizedTone;
+}
+
 type QuestionPanelProps = {
   answer: string;
   errorVisible: boolean;
@@ -188,6 +235,7 @@ export function QuestionPanel({
   const isAudienceStep = step.id === "targetUsers";
   const isProblemStep = step.id === "problem";
   const isFeaturesStep = step.id === "features";
+  const isDesignPreferencesStep = step.id === "uxTone";
   const breadcrumbLabel = isAppIdeaStep
     ? "Discovery / Product definition"
     : isAudienceStep
@@ -196,16 +244,32 @@ export function QuestionPanel({
         ? "Discovery / Problem"
         : isFeaturesStep
           ? "Discovery / MVP scope"
-          : "Discovery / Builder brief";
+          : isDesignPreferencesStep
+            ? "Discovery / Design direction"
+            : "Discovery / Builder brief";
   const textareaHelper = isFeaturesStep
     ? "Plain language is enough. Focus on the first release, not every future idea."
+    : isDesignPreferencesStep
+      ? "Plain language is enough. Describe the feeling, audience, and what to avoid."
     : "Plain language is enough. One or two short paragraphs works well.";
   const primaryLabel =
     stepIndex === stepCount - 1 ? "Review answers" : "Continue";
 
   return (
-    <WorkspacePanel className="min-h-[560px] p-5 sm:p-7 lg:min-h-screen lg:p-12">
-      <div className="mx-auto flex min-h-full max-w-[740px] flex-col lg:min-h-[calc(100vh-96px)] lg:pt-5">
+    <WorkspacePanel
+      className={cx(
+        "min-h-[560px] p-5 sm:p-7 lg:min-h-screen",
+        isDesignPreferencesStep ? "lg:px-12 lg:py-7" : "lg:p-12",
+      )}
+    >
+      <div
+        className={cx(
+          "mx-auto flex min-h-full max-w-[740px] flex-col",
+          isDesignPreferencesStep
+            ? "lg:min-h-[calc(100vh-56px)]"
+            : "lg:min-h-[calc(100vh-96px)] lg:pt-5",
+        )}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm font-medium text-[var(--text-muted)]">
@@ -237,7 +301,10 @@ export function QuestionPanel({
             value={answer}
             onChange={(event) => onChange(event.target.value)}
             placeholder={step.placeholder}
-            className="min-h-[210px] w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]"
+            className={cx(
+              "w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]",
+              isDesignPreferencesStep ? "min-h-[160px]" : "min-h-[210px]",
+            )}
             aria-describedby={`${step.id}-helper ${step.id}-count`}
           />
           <div className="mt-2 flex flex-col gap-2 text-sm text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
@@ -354,6 +421,10 @@ export function QuestionPanel({
           </>
         )}
 
+        {isDesignPreferencesStep && (
+          <DesignPreferencesStep answer={answer} onChange={onChange} />
+        )}
+
         {errorVisible && isMissing && (
           <p
             aria-live="polite"
@@ -364,7 +435,12 @@ export function QuestionPanel({
           </p>
         )}
 
-        <div className="mt-6 flex flex-col-reverse gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          className={cx(
+            "flex flex-col-reverse gap-3 border-t border-[var(--border)] sm:flex-row sm:items-center sm:justify-between",
+            isDesignPreferencesStep ? "mt-5 pt-4" : "mt-6 pt-5",
+          )}
+        >
           <Button
             className={cx("w-full sm:w-auto", !showBack && "opacity-45")}
             disabled={!showBack}
@@ -390,6 +466,99 @@ export function QuestionPanel({
         )}
       </div>
     </WorkspacePanel>
+  );
+}
+
+function DesignPreferencesStep({
+  answer,
+  onChange,
+}: {
+  answer: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <>
+      <ToneChips answer={answer} onChange={onChange} />
+
+      <DesignDirectionHint />
+    </>
+  );
+}
+
+function ToneChips({
+  answer,
+  onChange,
+}: {
+  answer: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="mt-5 border-y border-[var(--border)] py-3">
+      <div className="min-w-0">
+        <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+          Tone options
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+          Choose a few words that describe the product personality.
+        </p>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {toneOptions.map((tone) => {
+          const isSelected = hasToneOption(answer, tone);
+
+          return (
+            <button
+              key={tone}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onChange(toggleToneOption(answer, tone))}
+              className={cx(
+                "rounded-lg border px-3 py-1 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]",
+                isSelected
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]",
+              )}
+            >
+              {tone}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DesignDirectionHint() {
+  return (
+    <div className="border-b border-[var(--border)] py-4">
+      <div className="grid gap-5 sm:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] sm:gap-7">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+            Useful details to include
+          </h2>
+          <div className="mt-3 divide-y divide-[var(--border)] text-sm leading-6 text-[var(--text-secondary)]">
+            {designPreferenceDetails.map((detail) => (
+              <p key={detail} className="py-2 first:pt-0 last:pb-0">
+                {detail}
+              </p>
+            ))}
+          </div>
+        </div>
+        <div className="min-w-0 border-t border-[var(--border)] pt-5 sm:border-l sm:border-t-0 sm:pl-7 sm:pt-0">
+          <div className="flex gap-3">
+            <TargetIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+                Why this matters
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+                {designPreferenceWhy}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -510,6 +679,19 @@ function hasFeatureChip(answer: string, feature: string) {
     .split(/[,;\n]/)
     .map((part) => part.trim().toLowerCase())
     .includes(normalizedFeature);
+}
+
+export function hasToneOption(answer: string, tone: string) {
+  const normalizedTone = tone.trim().toLowerCase();
+
+  if (!normalizedTone) {
+    return false;
+  }
+
+  return answer
+    .split(/[,;\n]/)
+    .map((part) => part.trim().toLowerCase())
+    .includes(normalizedTone);
 }
 
 function normalizeWhitespace(value: string) {

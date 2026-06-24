@@ -193,4 +193,65 @@ describe("QuestionPanel Step 1 structure", () => {
       "onClick={() => onChange(toggleFeatureChip(answer, feature))}",
     );
   });
+
+  it("gives design preferences a guided UX tone step with interactive chips", async () => {
+    const source = questionPanelSource();
+    const questionPanelModule = (await import("./question-panel")) as {
+      toneOptions?: string[];
+      hasToneOption?: (answer: string, tone: string) => boolean;
+      toggleToneOption?: (answer: string, tone: string) => string;
+    };
+
+    expect(source).toContain("Discovery / Design direction");
+    expect(source).toContain("Plain language is enough. Describe the feeling, audience, and what to avoid.");
+    expect(source).toContain("Tone options");
+    expect(source).toContain("Useful details to include");
+    expect(source).toContain("Who should the design feel built for");
+    expect(source).toContain("Whether it should feel simple, premium, playful, or operational");
+    expect(source).toContain("Any styles to avoid, such as too corporate, too playful, too dark, or too busy");
+    expect(source).toContain(
+      "Design direction helps the AI builder choose layout, tone, density, and visual style that match the users instead of generating a generic interface.",
+    );
+    expect(questionPanelModule.toneOptions).toEqual([
+      "Calm",
+      "Trustworthy",
+      "Fast",
+      "Premium",
+      "Friendly",
+      "Minimal",
+      "Mobile-first",
+      "Professional",
+      "Playful",
+      "Accessible",
+      "Data-heavy",
+      "Simple",
+    ]);
+    expect(questionPanelModule.toggleToneOption?.("", "Calm")).toBe("Calm");
+    expect(
+      questionPanelModule.toggleToneOption?.("Simple for busy teachers", "Calm"),
+    ).toBe("Simple for busy teachers, Calm");
+    expect(
+      questionPanelModule.toggleToneOption?.(
+        "Simple for busy teachers, Calm",
+        "Calm",
+      ),
+    ).toBe("Simple for busy teachers");
+    expect(
+      questionPanelModule.toggleToneOption?.(
+        "Calm, trustworthy, mobile-first, simple for busy teachers, not corporate.",
+        "Premium",
+      ),
+    ).toBe(
+      "Calm, trustworthy, mobile-first, simple for busy teachers, not corporate, Premium",
+    );
+    expect(
+      questionPanelModule.hasToneOption?.(
+        "Calm, mobile-first, not corporate.",
+        "Calm",
+      ),
+    ).toBe(true);
+    expect(source).toContain(
+      "onClick={() => onChange(toggleToneOption(answer, tone))}",
+    );
+  });
 });
