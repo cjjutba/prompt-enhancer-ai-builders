@@ -6,6 +6,11 @@ import {
   TargetIcon,
   WorkspacePanel,
 } from "./ui";
+import {
+  ConstraintChips,
+  ConstraintFormatHint,
+  ConstraintWhyItMatters,
+} from "./constraints-step";
 import { discoverySteps, type DiscoveryStep } from "../../lib/discovery";
 
 const stepCount = discoverySteps.length;
@@ -188,6 +193,7 @@ export function QuestionPanel({
   const isAudienceStep = step.id === "targetUsers";
   const isProblemStep = step.id === "problem";
   const isFeaturesStep = step.id === "features";
+  const isConstraintsStep = step.id === "constraints";
   const breadcrumbLabel = isAppIdeaStep
     ? "Discovery / Product definition"
     : isAudienceStep
@@ -196,10 +202,14 @@ export function QuestionPanel({
         ? "Discovery / Problem"
         : isFeaturesStep
           ? "Discovery / MVP scope"
-          : "Discovery / Builder brief";
+          : isConstraintsStep
+            ? "Discovery / Launch goals"
+            : "Discovery / Builder brief";
   const textareaHelper = isFeaturesStep
     ? "Plain language is enough. Focus on the first release, not every future idea."
-    : "Plain language is enough. One or two short paragraphs works well.";
+    : isConstraintsStep
+      ? "Plain language is enough. Include any must-follow rules, limits, or success goals."
+      : "Plain language is enough. One or two short paragraphs works well.";
   const primaryLabel =
     stepIndex === stepCount - 1 ? "Review answers" : "Continue";
 
@@ -351,6 +361,14 @@ export function QuestionPanel({
               A focused first release helps the AI builder create a usable MVP
               instead of spreading the app across too many unfinished features.
             </StepGuidance>
+          </>
+        )}
+
+        {isConstraintsStep && (
+          <>
+            <ConstraintChips answer={answer} onChange={onChange} />
+            <ConstraintFormatHint />
+            <ConstraintWhyItMatters />
           </>
         )}
 
