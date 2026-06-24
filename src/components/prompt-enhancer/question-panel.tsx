@@ -6,6 +6,7 @@ import {
   TargetIcon,
   WorkspacePanel,
 } from "./ui";
+import { DataStep } from "./data-step";
 import { discoverySteps, type DiscoveryStep } from "../../lib/discovery";
 
 const stepCount = discoverySteps.length;
@@ -98,21 +99,6 @@ export const featureChips = [
   "Analytics",
 ];
 
-export const dataTypeChips = [
-  "Users",
-  "Profiles",
-  "Bookings",
-  "Payments",
-  "Messages",
-  "Files",
-  "Products",
-  "Orders",
-  "Requests",
-  "Notifications",
-  "Settings",
-  "Activity logs",
-];
-
 export function getAppIdeaExampleAnswer(answer: string, template: string) {
   return answer.trim() === template.trim() ? "" : template;
 }
@@ -176,27 +162,6 @@ export function toggleFeatureChip(answer: string, feature: string) {
     : normalizedFeature;
 }
 
-export function toggleDataType(answer: string, dataType: string) {
-  const normalizedAnswer = answer.trim();
-  const normalizedDataType = dataType.trim();
-
-  if (!normalizedDataType) {
-    return normalizedAnswer;
-  }
-
-  if (hasDataType(normalizedAnswer, normalizedDataType)) {
-    return normalizedAnswer
-      .split(/[,;\n]/)
-      .map((part) => part.trim())
-      .filter((part) => part.toLowerCase() !== normalizedDataType.toLowerCase())
-      .join(", ");
-  }
-
-  return normalizedAnswer
-    ? `${normalizedAnswer}, ${normalizedDataType}`
-    : normalizedDataType;
-}
-
 type QuestionPanelProps = {
   answer: string;
   errorVisible: boolean;
@@ -240,7 +205,7 @@ export function QuestionPanel({
     ? "Plain language is enough. Focus on the first release, not every future idea."
     : isDataStep
       ? "Plain language is enough. List the objects and details the app should track."
-    : "Plain language is enough. One or two short paragraphs works well.";
+      : "Plain language is enough. One or two short paragraphs works well.";
   const primaryLabel =
     stepIndex === stepCount - 1 ? "Review answers" : "Continue";
 
@@ -278,7 +243,10 @@ export function QuestionPanel({
             value={answer}
             onChange={(event) => onChange(event.target.value)}
             placeholder={step.placeholder}
-            className="min-h-[210px] w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]"
+            className={cx(
+              "w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] p-4 text-base leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-4 focus:ring-[var(--accent-ring)]",
+              isDataStep ? "min-h-[180px]" : "min-h-[210px]",
+            )}
             aria-describedby={`${step.id}-helper ${step.id}-count`}
           />
           <div className="mt-2 flex flex-col gap-2 text-sm text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
@@ -395,16 +363,7 @@ export function QuestionPanel({
           </>
         )}
 
-        {isDataStep && (
-          <>
-            <DataTypeChips answer={answer} onChange={onChange} />
-            <DataFormatHint />
-
-            <StepGuidance>
-              Clear data requirements help the AI builder create better forms, dashboards, permissions, and empty states.
-            </StepGuidance>
-          </>
-        )}
+        {isDataStep && <DataStep answer={answer} onChange={onChange} />}
 
         {errorVisible && isMissing && (
           <p
@@ -442,65 +401,6 @@ export function QuestionPanel({
         )}
       </div>
     </WorkspacePanel>
-  );
-}
-
-function DataTypeChips({
-  answer,
-  onChange,
-}: {
-  answer: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="mt-5 border-y border-[var(--border)] py-5">
-      <div className="min-w-0">
-        <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
-          Common data types
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-          Add the records, content, or app memory that should be tracked.
-        </p>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2.5">
-        {dataTypeChips.map((dataType) => {
-          const isSelected = hasDataType(answer, dataType);
-
-          return (
-            <button
-              key={dataType}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => onChange(toggleDataType(answer, dataType))}
-              className={cx(
-                "rounded-lg border px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-ring)]",
-                isSelected
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]",
-              )}
-            >
-              {dataType}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function DataFormatHint() {
-  return (
-    <div className="border-b border-[var(--border)] py-5">
-      <h2 className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
-        Simple data format
-      </h2>
-      <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-        Thing to manage → important details → who can view or edit it
-      </p>
-      <p className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2 text-sm leading-6 text-[var(--text-secondary)]">
-        Booking → date, time, customer, status, payment status → customer and admin
-      </p>
-    </div>
   );
 }
 
@@ -621,19 +521,6 @@ function hasFeatureChip(answer: string, feature: string) {
     .split(/[,;\n]/)
     .map((part) => part.trim().toLowerCase())
     .includes(normalizedFeature);
-}
-
-function hasDataType(answer: string, dataType: string) {
-  const normalizedDataType = dataType.trim().toLowerCase();
-
-  if (!normalizedDataType) {
-    return false;
-  }
-
-  return answer
-    .split(/[,;\n]/)
-    .map((part) => part.trim().toLowerCase())
-    .includes(normalizedDataType);
 }
 
 function normalizeWhitespace(value: string) {
