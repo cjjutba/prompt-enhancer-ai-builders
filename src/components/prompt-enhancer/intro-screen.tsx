@@ -1,4 +1,17 @@
-import { Button, CheckIcon, ListIcon, ReassuranceRow, WorkspacePanel } from "./ui";
+import type { ReactNode } from "react";
+import {
+  ArrowRightIcon,
+  Button,
+  CubeIcon,
+  DocumentIcon,
+  PencilIcon,
+  RouteIcon,
+  ShieldIcon,
+  SparkIcon,
+  TargetIcon,
+  UsersIcon,
+  WorkspacePanel,
+} from "./ui";
 
 type IntroScreenProps = {
   onShowExample: () => void;
@@ -7,27 +20,32 @@ type IntroScreenProps = {
 };
 
 const promptIncludes = [
-  "Product",
-  "Audience",
-  "Goal",
-  "Core workflow",
-  "MVP features",
+  { icon: CubeIcon, label: "Product" },
+  { icon: UsersIcon, label: "Audience" },
+  { icon: TargetIcon, label: "Goal" },
+  { icon: RouteIcon, label: "Core workflow" },
+  { icon: SparkIcon, label: "MVP features" },
 ];
 
 const valueRows = [
   {
+    icon: PencilIcon,
     title: "Plain-language inputs",
-    body: "Describe the app in your own words. The tool shapes the details into a structured builder prompt.",
+    body: "Answer in your own words. We'll handle the structure.",
   },
   {
+    icon: TargetIcon,
     title: "Guided product thinking",
-    body: "Each step asks for the decisions an AI app builder needs before it can produce a coherent first version.",
+    body: "Smart prompts help you cover what matters.",
   },
   {
+    icon: DocumentIcon,
     title: "Copy-ready prompt",
-    body: "The final output is organized for Lovable, Base44, Emergent, and similar tools.",
+    body: "Clean, structured, and ready to paste.",
   },
 ];
+
+type IconComponent = ({ className }: { className?: string }) => ReactNode;
 
 export function IntroScreen({
   onShowExample,
@@ -35,16 +53,16 @@ export function IntroScreen({
   showExample,
 }: IntroScreenProps) {
   return (
-    <WorkspacePanel className="min-h-[560px] p-5 sm:p-7 lg:min-h-[calc(100vh-40px)] lg:p-10">
-      <div className="flex min-h-full flex-col justify-between gap-10">
+    <WorkspacePanel className="min-h-[560px] p-5 sm:p-7 lg:min-h-screen lg:p-12">
+      <div className="mx-auto flex min-h-full max-w-[740px] flex-col gap-7 lg:min-h-[calc(100vh-96px)] lg:pt-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+          <p className="text-base font-semibold text-[var(--accent)]">
             Guided discovery
           </p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-tight text-[var(--text-primary)] sm:text-5xl lg:text-6xl">
+          <h1 className="mt-4 max-w-[720px] text-4xl font-semibold leading-[1.08] text-[var(--text-primary)] sm:text-[44px]">
             Turn a loose app idea into a builder-ready prompt.
           </h1>
-          <p className="mt-5 max-w-3xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg sm:leading-8">
+          <p className="mt-4 max-w-[700px] text-base leading-7 text-[var(--text-secondary)] sm:text-[17px] sm:leading-8">
             Answer a few practical questions. We&apos;ll turn your answers into
             a clear prompt you can paste into Lovable, Base44, Emergent, or any
             AI app builder.
@@ -52,26 +70,28 @@ export function IntroScreen({
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Button
-              className="w-full sm:w-auto"
+              className="w-full px-6 sm:w-auto"
               onClick={onStart}
               variant="primary"
             >
               Start discovery
+              <ArrowRightIcon className="h-5 w-5" />
             </Button>
             <Button
               aria-expanded={showExample}
-              className="w-full sm:w-auto"
+              className="w-full px-6 sm:w-auto"
               onClick={onShowExample}
               variant="secondary"
             >
-              {showExample ? "Hide example output" : "See example output"}
+              <DocumentIcon className="h-4 w-4 text-[var(--text-muted)]" />
+              See example output
             </Button>
           </div>
 
           {showExample && (
             <div className="mt-5 rounded-[10px] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
               <div className="flex items-start gap-3">
-                <ListIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+                <DocumentIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[var(--text-primary)]">
                     Example final prompt structure
@@ -87,36 +107,34 @@ export function IntroScreen({
           )}
         </div>
 
-        <div className="border-t border-[var(--border)] pt-7">
+        <div className="border-t border-[var(--border)] pt-5">
           <div>
             <p className="text-sm font-semibold text-[var(--text-primary)]">
               Your prompt will include:
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-y-3 text-sm font-medium leading-5 text-[var(--text-primary)]">
               {promptIncludes.map((item) => (
-                <span
-                  key={item}
-                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)]"
-                >
-                  {item}
-                </span>
+                <PromptIncludeItem key={item.label} {...item} />
               ))}
             </div>
           </div>
 
-          <div className="mt-7 divide-y divide-[var(--border)]">
+          <div className="mt-5 divide-y divide-[var(--border)] border-y border-[var(--border)]">
             {valueRows.map((row) => (
-              <ValueRow key={row.title} body={row.body} title={row.title} />
+              <ValueRow key={row.title} {...row} />
             ))}
           </div>
 
-          <div className="mt-7 grid gap-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:grid-cols-2">
-            <ReassuranceRow icon="spark">
-              No technical jargon required.
-            </ReassuranceRow>
-            <ReassuranceRow>
-              We&apos;ll guide you step by step.
-            </ReassuranceRow>
+          <div className="mt-5 flex gap-4 rounded-[10px] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+            <ShieldIcon className="mt-1 h-5 w-5 shrink-0 text-[var(--accent)]" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
+                No technical jargon required.
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+                We&apos;ll guide you step by step.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -124,12 +142,37 @@ export function IntroScreen({
   );
 }
 
-function ValueRow({ body, title }: { body: string; title: string }) {
+function PromptIncludeItem({
+  icon: Icon,
+  label,
+}: {
+  icon: IconComponent;
+  label: string;
+}) {
   return (
-    <div className="flex gap-3 py-4 first:pt-0 last:pb-0">
-      <CheckIcon className="mt-1 h-4 w-4 shrink-0 text-[var(--success)]" />
+    <span className="flex items-center gap-2 border-r border-[var(--border)] pr-4 last:border-r-0 last:pr-0 sm:pr-5">
+      <Icon className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+      {label}
+    </span>
+  );
+}
+
+function ValueRow({
+  body,
+  icon: Icon,
+  title,
+}: {
+  body: string;
+  icon: IconComponent;
+  title: string;
+}) {
+  return (
+    <div className="flex gap-4 py-4 first:pt-4 last:pb-4">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--text-secondary)]">
+        <Icon className="h-5 w-5" />
+      </span>
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+        <h2 className="text-base font-semibold leading-6 text-[var(--text-primary)]">
           {title}
         </h2>
         <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
