@@ -256,8 +256,8 @@ export function QuestionPanel({
   const isAudienceStep = step.id === "targetUsers";
   const isProblemStep = step.id === "problem";
   const isFeaturesStep = step.id === "features";
-  const isIntegrationsStep = step.id === "integrations";
   const isDataStep = step.id === "data";
+  const isIntegrationsStep = step.id === "integrations";
   const breadcrumbLabel = isAppIdeaStep
     ? "Discovery / Product definition"
     : isAudienceStep
