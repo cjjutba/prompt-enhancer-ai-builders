@@ -193,4 +193,57 @@ describe("QuestionPanel Step 1 structure", () => {
       "onClick={() => onChange(toggleFeatureChip(answer, feature))}",
     );
   });
+
+  it("gives content and data a guided discovery step with interactive data chips", async () => {
+    const source = questionPanelSource();
+    const questionPanelModule = (await import("./question-panel")) as {
+      dataTypeChips?: string[];
+      toggleDataType?: (answer: string, dataType: string) => string;
+    };
+
+    expect(source).toContain("Discovery / Content & data");
+    expect(source).toContain("Common data types");
+    expect(source).toContain("Simple data format");
+    expect(source).toContain(
+      "Plain language is enough. List the objects and details the app should track.",
+    );
+    expect(source).toContain(
+      "Thing to manage → important details → who can view or edit it",
+    );
+    expect(source).toContain(
+      "Booking → date, time, customer, status, payment status → customer and admin",
+    );
+    expect(source).toContain(
+      "Clear data requirements help the AI builder create better forms, dashboards, permissions, and empty states.",
+    );
+    expect(questionPanelModule.dataTypeChips).toEqual([
+      "Users",
+      "Profiles",
+      "Bookings",
+      "Payments",
+      "Messages",
+      "Files",
+      "Products",
+      "Orders",
+      "Requests",
+      "Notifications",
+      "Settings",
+      "Activity logs",
+    ]);
+    expect(questionPanelModule.toggleDataType?.("", "Bookings")).toBe(
+      "Bookings",
+    );
+    expect(
+      questionPanelModule.toggleDataType?.("Teachers", "Payments"),
+    ).toBe("Teachers, Payments");
+    expect(
+      questionPanelModule.toggleDataType?.(
+        "Teachers, Payments",
+        "Payments",
+      ),
+    ).toBe("Teachers");
+    expect(source).toContain(
+      "onClick={() => onChange(toggleDataType(answer, dataType))}",
+    );
+  });
 });
