@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { DiscoveryAnswers } from "@/lib/discovery";
-import { cx, ListIcon, SparkIcon, TipBlock } from "./ui";
+import { CubeIcon, ListIcon, TargetIcon, TipBlock, UsersIcon, cx } from "./ui";
 
 type LivePromptBriefProps = {
   answers: DiscoveryAnswers;
@@ -19,17 +19,17 @@ const briefRows: Array<{
 
 export function LivePromptBrief({ answers }: LivePromptBriefProps) {
   return (
-    <aside className="rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_14px_36px_rgba(15,23,42,0.05)] lg:min-h-[calc(100vh-40px)] lg:p-5">
+    <aside className="rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)] lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:rounded-none lg:border-y-0 lg:border-l lg:border-r-0 lg:p-7 lg:shadow-none">
       <div>
-        <p className="text-sm font-semibold text-[var(--text-primary)]">
+        <p className="text-lg font-semibold leading-7 text-[var(--text-primary)]">
           Live prompt brief
         </p>
-        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+        <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
           Your brief will build here as you answer.
         </p>
       </div>
 
-      <div className="mt-5 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+      <div className="mt-6 divide-y divide-[var(--border)] border-y border-[var(--border)]">
         {briefRows.map((row) => (
           <BriefRow
             key={row.key}
@@ -40,9 +40,9 @@ export function LivePromptBrief({ answers }: LivePromptBriefProps) {
         ))}
       </div>
 
-      <div className="mt-5">
+      <div className="border-b border-[var(--border)] py-5">
         <TipBlock title="Tips for a stronger brief">
-          <ul className="list-disc space-y-1.5 pl-4">
+          <ul className="space-y-2">
             <li>Start with the outcome, not the tech.</li>
             <li>Keep your first version focused.</li>
             <li>Mention what success looks like.</li>
@@ -50,17 +50,17 @@ export function LivePromptBrief({ answers }: LivePromptBriefProps) {
         </TipBlock>
       </div>
 
-      <div className="mt-5 rounded-[10px] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-          Builder targets
-        </p>
-        <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">
-          Lovable <span aria-hidden="true">&bull;</span> Base44{" "}
-          <span aria-hidden="true">&bull;</span> Emergent
-        </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-          Your final prompt will be easy to copy and paste.
-        </p>
+      <div className="flex items-start gap-3 py-5">
+        <TargetIcon className="mt-0.5 h-5 w-5 shrink-0 text-[var(--text-muted)]" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-6 text-[var(--text-primary)]">
+            Builder targets: Lovable <span aria-hidden="true">&bull;</span>{" "}
+            Base44 <span aria-hidden="true">&bull;</span> Emergent
+          </p>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+            Your final prompt will be easy to copy and paste.
+          </p>
+        </div>
       </div>
     </aside>
   );
@@ -79,10 +79,10 @@ export function BriefRow({
   const hasValue = value.trim().length > 0;
 
   return (
-    <div className="flex min-w-0 items-start gap-3 py-4">
+    <div className="flex min-w-0 items-start gap-4 py-5">
       <Icon
         className={cx(
-          "mt-0.5 h-4 w-4 shrink-0",
+          "mt-0.5 h-5 w-5 shrink-0",
           hasValue ? "text-[var(--accent)]" : "text-[var(--text-muted)]",
         )}
       />
@@ -95,9 +95,9 @@ export function BriefRow({
             {value}
           </p>
         ) : (
-          <div className="mt-2 space-y-2" aria-hidden="true">
+          <div className="mt-3 space-y-2.5" aria-hidden="true">
             <SkeletonLine width="w-11/12" />
-            <SkeletonLine width="w-8/12" />
+            <SkeletonLine width="w-7/12" />
           </div>
         )}
       </div>
@@ -109,7 +109,7 @@ function SkeletonLine({ width }: { width: string }) {
   return (
     <span
       className={cx(
-        "block h-2 rounded-full bg-[var(--surface-subtle)]",
+        "block h-1.5 rounded-full bg-[var(--border)]",
         width,
       )}
     />
@@ -117,51 +117,19 @@ function SkeletonLine({ width }: { width: string }) {
 }
 
 function ProductIcon({ className }: { className?: string }) {
-  return <ListIcon className={className} />;
+  return <CubeIcon className={className} />;
 }
 
 function AudienceIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M16 11a4 4 0 1 0-8 0M4 20a8 8 0 0 1 16 0"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
+  return <UsersIcon className={className} />;
 }
 
 function GoalIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M12 21a9 9 0 1 0-9-9 9 9 0 0 0 9 9Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M12 16a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-    </svg>
-  );
+  return <TargetIcon className={className} />;
 }
 
 function FeaturesIcon({ className }: { className?: string }) {
-  return <SparkIcon className={className} />;
+  return <ListIcon className={className} />;
 }
 
 const briefIconMap: Record<

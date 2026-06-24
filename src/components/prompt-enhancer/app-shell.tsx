@@ -23,8 +23,8 @@ export function AppShell({
   progressPercent,
 }: AppShellProps) {
   return (
-    <main className="min-h-screen bg-[var(--background)] px-3 py-3 text-[var(--text-primary)] sm:px-5 sm:py-5 lg:px-6">
-      <div className="mx-auto grid w-full max-w-[1680px] gap-4 lg:grid-cols-[280px_minmax(0,1fr)_336px] xl:grid-cols-[300px_minmax(0,1fr)_360px]">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--background)] text-[var(--text-primary)] lg:bg-[var(--surface)]">
+      <div className="grid min-h-screen w-full gap-3 p-3 sm:gap-4 sm:p-5 lg:grid-cols-[320px_minmax(0,1fr)_360px] lg:gap-0 lg:p-0">
         <DiscoveryRail
           answers={answers}
           completedCount={completedCount}
@@ -33,7 +33,9 @@ export function AppShell({
           onStepSelect={onStepSelect}
           progressPercent={progressPercent}
         />
-        <div className="min-w-0">{children}</div>
+        <div className="min-w-0 lg:min-h-screen lg:bg-[var(--surface)]">
+          {children}
+        </div>
         <LivePromptBrief answers={answers} />
       </div>
     </main>
